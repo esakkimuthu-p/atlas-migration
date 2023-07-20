@@ -1,0 +1,13 @@
+[package]
+name = "atlas-migration"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+futures-util = "0.3.28"
+mongodb = "2.6.0"
+serde = { version = "1.0.171", features = ["derive"] }
+surrealdb = { git = "https://github.com/surrealdb/surrealdb", rev = "09dde86e73113a82ba5c5518b0cf04ebeb6df7e0" } 
+tokio = { version = "1.29.1", features = ["macros", "rt-multi-thread"] }
