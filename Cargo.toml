@@ -11,3 +11,5 @@ mongodb = "2.6.0"
 serde = { version = "1.0.171", features = ["derive"] }
 surrealdb = { git = "https://github.com/surrealdb/surrealdb", rev = "09dde86e73113a82ba5c5518b0cf04ebeb6df7e0" } 
 tokio = { version = "1.29.1", features = ["macros", "rt-multi-thread"] }
+chrono = { version = "0.4.24", features = ["serde"] }
+serde_json = "1.0.95"

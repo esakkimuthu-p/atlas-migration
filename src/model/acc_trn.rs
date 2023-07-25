@@ -1,5 +1,4 @@
-use serde::Serialize;
-use surrealdb::sql::Thing;
+use super::{Serialize, Thing};
 
 #[derive(Debug, Serialize)]
 pub struct AccountTransaction {

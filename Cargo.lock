@@ -182,9 +182,11 @@ dependencies = [
 name = "atlas-migration"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "futures-util",
  "mongodb",
  "serde",
+ "serde_json",
  "surrealdb",
  "tokio",
 ]
