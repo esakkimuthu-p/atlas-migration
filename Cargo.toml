@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 futures-util = "0.3.28"
-mongodb = "2.6.0"
+mongodb = { version = "2.6.0", features = ["bson-chrono-0_4"] }
 serde = { version = "1.0.171", features = ["derive"] }
 surrealdb = { git = "https://github.com/surrealdb/surrealdb", rev = "09dde86e73113a82ba5c5518b0cf04ebeb6df7e0" } 
 tokio = { version = "1.29.1", features = ["macros", "rt-multi-thread"] }

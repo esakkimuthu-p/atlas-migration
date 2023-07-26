@@ -7,7 +7,7 @@ pub struct Batch {
     pub inventory_name: String,
     pub branch: Thing,
     pub branch_name: String,
-    pub barcode: Thing,
+    pub barcode: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub batch_no: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -46,6 +46,6 @@ pub struct Batch {
     pub manufacturer_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub vendors: Option<HashSet<Thing>>,
-    // pub created: DateTime<Utc>,
-    // pub updated: DateTime<Utc>,
+    pub created: DateTime<Utc>,
+    pub updated: DateTime<Utc>,
 }

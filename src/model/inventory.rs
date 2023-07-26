@@ -1,4 +1,4 @@
-use super::{Deserialize, HashSet, Serialize, Thing};
+use super::{DateTime, Deserialize, HashSet, Serialize, Thing, Utc};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InventoryUnit {
@@ -18,36 +18,6 @@ pub struct InventoryCess {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub on_quantity: Option<f64>,
 }
-
-// #[derive(Debug, Serialize, Deserialize)]
-// pub struct NameInfo {
-//     pub id: Thing,
-//     pub display_name: String,
-// }
-
-// #[derive(Debug, Serialize, Deserialize)]
-// pub struct CustomerDiscount {
-//     pub id: Thing,
-//     pub disc: Document,
-// }
-
-// #[derive(Debug, Serialize, Deserialize)]
-// pub struct InventoryBranchDetail {
-//     pub branch: Thing,
-//     #[serde(skip_serializing_if = "Option::is_none")]
-//     pub rack: Option<NameInfo>,
-//     #[serde(skip_serializing_if = "Option::is_none")]
-//     pub cost_margin: Option<Document>,
-//     #[serde(skip_serializing_if = "Option::is_none")]
-//     pub mrp_margin: Option<Document>,
-//     #[serde(skip_serializing_if = "Option::is_none")]
-//     pub min_profit_margin: Option<Document>,
-//     #[serde(skip_serializing_if = "Option::is_none")]
-//     pub s_disc: Option<Document>,
-//     #[serde(skip_serializing_if = "Option::is_none")]
-//     pub s_customer_disc: Option<Vec<CustomerDiscount>>,
-// }
-
 #[derive(Debug, Serialize)]
 pub struct Inventory {
     pub id: Thing,
@@ -93,4 +63,6 @@ pub struct Inventory {
     pub narcotics: Option<bool>,
     #[serde(default)]
     pub enable_expiry: bool,
+    pub created: DateTime<Utc>,
+    pub updated: DateTime<Utc>,
 }
