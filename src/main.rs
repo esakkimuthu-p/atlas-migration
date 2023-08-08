@@ -16,7 +16,8 @@ use surrealdb::{
 mod model;
 
 use model::{
-    AccountTransaction, Batch, Inventory, InventoryCess, InventoryTransaction, InventoryUnit,
+    Account, AccountTransaction, Batch, Inventory, InventoryCess, InventoryTransaction,
+    InventoryUnit,
 };
 
 #[derive(Deserialize, Clone)]
@@ -438,4 +439,71 @@ async fn main() {
             .unwrap();
     }
     println!("batch download end");
+    println!("account INDEX start");
+    DB.query("DEFINE INDEX account_type ON TABLE account COLUMNS account_type")
+        .await
+        .unwrap()
+        .take::<Option<()>>(0)
+        .unwrap();
+    DB.query("DEFINE INDEX val_name ON TABLE account COLUMNS val_name")
+        .await
+        .unwrap()
+        .take::<Option<()>>(0)
+        .unwrap();
+    println!("account INDEX end");
+    println!("account download start");
+    let mut cur = db
+        .collection::<Document>("accounts")
+        .find(doc! {}, None)
+        .await
+        .unwrap();
+    while let Some(Ok(d)) = cur.next().await {
+        let mut id = d.get_oid_to_thing("_id", "account").unwrap();
+        let mut is_default = None;
+        if let Ok(default_acc) = d.get_str("defaultName") {
+            id = (
+                "account".to_string(),
+                default_acc.to_string().to_lowercase(),
+            )
+                .into();
+            is_default = Some(true);
+        }
+        let _created: Created = DB
+            .create("account")
+            .content(Account {
+                id,
+                name: d.get_string("name").unwrap(),
+                val_name: d.get_string("validateName").unwrap(),
+                display_name: d.get_string("displayName").unwrap(),
+                is_default,
+                alias_name: d.get_string("aliasName"),
+                val_alias_name: d.get_string("validateAliasName"),
+                in_favour_of: d.get_string("inFavourOf"),
+                account_type: (
+                    "account_type".to_string(),
+                    d.get_string("accountType")
+                        .unwrap()
+                        .to_string()
+                        .to_lowercase(),
+                )
+                    .into(),
+                tax: d.get_string("tax").map(|x| ("tax".to_string(), x).into()),
+                gst_type: d.get_string("gstType"),
+                sac_code: d.get_string("sacCode"),
+                parent_account: d.get_oid_to_thing("parentAccount", "account"),
+                parents: d.get_array_thing("parents", "account"),
+                description: d.get_string("description"),
+                tds_nature_of_payment: d
+                    .get_oid_to_thing("tdsNatureOfPayment", "tds_nature_of_payment"),
+                hide: d.get_bool("hide").unwrap_or_default(),
+                created: d.get_chrono_datetime("createdAt").unwrap_or_default(),
+                updated: d.get_chrono_datetime("updatedAt").unwrap_or_default(),
+            })
+            .await
+            .unwrap()
+            .first()
+            .cloned()
+            .unwrap();
+    }
+    println!("account download end");
 }
