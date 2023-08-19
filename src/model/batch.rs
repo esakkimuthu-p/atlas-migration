@@ -1,6 +1,6 @@
 use super::{
-    doc, Created, Database, DateTime, Doc, Document, HashSet, Serialize, StreamExt, Surreal,
-    SurrealClient, Thing, Utc,
+    doc, Created, Database, Datetime, Doc, Document, HashSet, Serialize, StreamExt, Surreal,
+    SurrealClient, Thing,
 };
 
 #[derive(Debug, Serialize)]
@@ -49,8 +49,8 @@ pub struct Batch {
     pub manufacturer_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub vendors: Option<HashSet<Thing>>,
-    pub created: DateTime<Utc>,
-    pub updated: DateTime<Utc>,
+    pub created: Datetime,
+    pub updated: Datetime,
 }
 
 impl Batch {
@@ -126,8 +126,8 @@ impl Batch {
                     p_rate_tax_inc: d.get_bool("pRateTaxInc").unwrap_or_default(),
                     s_rate_tax_inc: d.get_bool("sRateTaxInc").unwrap_or(true),
                     vendors: d.get_array_thing("vendors", "contact"),
-                    created: d.get_chrono_datetime("createdAt").unwrap_or_default(),
-                    updated: d.get_chrono_datetime("updatedAt").unwrap_or_default(),
+                    created: d.get_surreal_datetime("createdAt").unwrap(),
+                    updated: d.get_surreal_datetime("updatedAt").unwrap(),
                 })
                 .await
                 .unwrap()

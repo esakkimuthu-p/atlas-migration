@@ -1,6 +1,6 @@
 use super::{
-    doc, Created, Database, DateTime, Doc, Document, HashSet, Serialize, StreamExt, Surreal,
-    SurrealClient, Thing, Utc,
+    doc, Created, Database, Datetime, Doc, Document, HashSet, Serialize, StreamExt, Surreal,
+    SurrealClient, Thing,
 };
 
 #[derive(Debug, Clone, Serialize)]
@@ -33,8 +33,8 @@ pub struct Account {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tds_nature_of_payment: Option<Thing>,
     pub hide: bool,
-    pub created: DateTime<Utc>,
-    pub updated: DateTime<Utc>,
+    pub created: Datetime,
+    pub updated: Datetime,
 }
 
 impl Account {
@@ -98,8 +98,8 @@ impl Account {
                     tds_nature_of_payment: d
                         .get_oid_to_thing("tdsNatureOfPayment", "tds_nature_of_payment"),
                     hide: d.get_bool("hide").unwrap_or_default(),
-                    created: d.get_chrono_datetime("createdAt").unwrap_or_default(),
-                    updated: d.get_chrono_datetime("updatedAt").unwrap_or_default(),
+                    created: d.get_surreal_datetime("createdAt").unwrap(),
+                    updated: d.get_surreal_datetime("updatedAt").unwrap(),
                 })
                 .await
                 .unwrap()

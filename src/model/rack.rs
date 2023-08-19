@@ -1,6 +1,6 @@
 use super::{
-    doc, Created, Database, DateTime, Doc, Document, Serialize, StreamExt, Surreal, SurrealClient,
-    Thing, Utc,
+    doc, Created, Database, Datetime, Doc, Document, Serialize, StreamExt, Surreal, SurrealClient,
+    Thing,
 };
 #[derive(Debug, Serialize)]
 pub struct Rack {
@@ -8,8 +8,8 @@ pub struct Rack {
     pub name: String,
     pub display_name: String,
     pub val_name: String,
-    pub created: DateTime<Utc>,
-    pub updated: DateTime<Utc>,
+    pub created: Datetime,
+    pub updated: Datetime,
 }
 
 impl Rack {
@@ -36,8 +36,8 @@ impl Rack {
                     name: d.get_string("name").unwrap(),
                     val_name: d.get_string("validateName").unwrap(),
                     display_name: d.get_string("displayName").unwrap(),
-                    created: d.get_chrono_datetime("createdAt").unwrap_or_default(),
-                    updated: d.get_chrono_datetime("updatedAt").unwrap_or_default(),
+                    created: d.get_surreal_datetime("createdAt").unwrap(),
+                    updated: d.get_surreal_datetime("updatedAt").unwrap(),
                 })
                 .await
                 .unwrap()

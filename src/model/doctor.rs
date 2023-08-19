@@ -1,6 +1,6 @@
 use super::{
-    doc, Created, Database, DateTime, Doc, Document, Serialize, StreamExt, Surreal, SurrealClient,
-    Thing, Utc,
+    doc, Created, Database, Datetime, Doc, Document, Serialize, StreamExt, Surreal, SurrealClient,
+    Thing,
 };
 #[derive(Debug, Serialize)]
 pub struct Doctor {
@@ -10,8 +10,8 @@ pub struct Doctor {
     pub val_name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub license_no: Option<String>,
-    pub created: DateTime<Utc>,
-    pub updated: DateTime<Utc>,
+    pub created: Datetime,
+    pub updated: Datetime,
 }
 
 impl Doctor {
@@ -39,8 +39,8 @@ impl Doctor {
                     val_name: d.get_string("validateName").unwrap(),
                     display_name: d.get_string("displayName").unwrap(),
                     license_no: d.get_string("licenseNo"),
-                    created: d.get_chrono_datetime("createdAt").unwrap_or_default(),
-                    updated: d.get_chrono_datetime("updatedAt").unwrap_or_default(),
+                    created: d.get_surreal_datetime("createdAt").unwrap(),
+                    updated: d.get_surreal_datetime("updatedAt").unwrap(),
                 })
                 .await
                 .unwrap()

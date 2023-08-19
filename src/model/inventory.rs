@@ -1,6 +1,6 @@
 use super::{
-    doc, Created, Database, DateTime, Deserialize, Doc, Document, HashSet, Serialize, StreamExt,
-    Surreal, SurrealClient, Thing, Utc,
+    doc, Created, Database, Datetime, Deserialize, Doc, Document, HashSet, Serialize, StreamExt,
+    Surreal, SurrealClient, Thing,
 };
 use mongodb::bson::from_document;
 
@@ -65,8 +65,8 @@ pub struct Inventory {
     pub narcotics: Option<bool>,
     #[serde(default)]
     pub enable_expiry: bool,
-    pub created: DateTime<Utc>,
-    pub updated: DateTime<Utc>,
+    pub created: Datetime,
+    pub updated: Datetime,
 }
 
 impl Inventory {
@@ -149,8 +149,8 @@ impl Inventory {
                     schedule_h1: d.get_bool("scheduleH1").ok(),
                     narcotics: d.get_bool("narcotics").ok(),
                     enable_expiry: d.get_bool("enableExpiry").unwrap_or_default(),
-                    created: d.get_chrono_datetime("createdAt").unwrap_or_default(),
-                    updated: d.get_chrono_datetime("updatedAt").unwrap_or_default(),
+                    created: d.get_surreal_datetime("createdAt").unwrap(),
+                    updated: d.get_surreal_datetime("updatedAt").unwrap(),
                 })
                 .await
                 .unwrap()

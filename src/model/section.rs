@@ -1,6 +1,6 @@
 use super::{
-    doc, Created, Database, DateTime, Doc, Document, HashSet, Serialize, StreamExt, Surreal,
-    SurrealClient, Thing, Utc,
+    doc, Created, Database, Datetime, Doc, Document, HashSet, Serialize, StreamExt, Surreal,
+    SurrealClient, Thing,
 };
 
 #[derive(Debug, Serialize)]
@@ -13,8 +13,8 @@ pub struct Section {
     pub parent: Option<Thing>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub parents: Option<HashSet<Thing>>,
-    pub created: DateTime<Utc>,
-    pub updated: DateTime<Utc>,
+    pub created: Datetime,
+    pub updated: Datetime,
 }
 
 impl Section {
@@ -43,8 +43,8 @@ impl Section {
                     display_name: d.get_string("displayName").unwrap(),
                     parent: d.get_oid_to_thing("parentSection", "section"),
                     parents: d.get_array_thing("parents", "section"),
-                    created: d.get_chrono_datetime("createdAt").unwrap_or_default(),
-                    updated: d.get_chrono_datetime("updatedAt").unwrap_or_default(),
+                    created: d.get_surreal_datetime("createdAt").unwrap(),
+                    updated: d.get_surreal_datetime("updatedAt").unwrap(),
                 })
                 .await
                 .unwrap()
