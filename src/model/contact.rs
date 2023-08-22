@@ -1,21 +1,7 @@
 use super::{
-    doc, Created, Database, Datetime, Doc, Document, GstInfo, Serialize, StreamExt, Surreal,
-    SurrealClient, Thing,
+    doc, ContactInfo, Created, Database, Datetime, Doc, Document, GstInfo, Serialize, StreamExt,
+    Surreal, SurrealClient, Thing,
 };
-
-#[derive(Debug, Serialize)]
-pub struct ContactInfo {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub mobile: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub alternate_mobile: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub email: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub telephone: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub contact_person: Option<String>,
-}
 
 #[derive(Debug, Serialize)]
 pub struct Contact {

@@ -16,25 +16,25 @@ pub struct Doctor {
 
 impl Doctor {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("pharma_salt INDEX start");
+        println!("doctor INDEX start");
         surrealdb
-            .query("DEFINE INDEX val_name ON TABLE pharma_salt COLUMNS val_name")
+            .query("DEFINE INDEX val_name ON TABLE doctor COLUMNS val_name")
             .await
             .unwrap()
             .take::<Option<()>>(0)
             .unwrap();
-        println!("pharma_salt INDEX end");
-        println!("pharma_salt download start");
+        println!("doctor INDEX end");
+        println!("doctor download start");
         let mut cur = mongodb
-            .collection::<Document>("pharma_salts")
+            .collection::<Document>("doctors")
             .find(doc! {}, None)
             .await
             .unwrap();
         while let Some(Ok(d)) = cur.next().await {
             let _created: Created = surrealdb
-                .create("pharma_salt")
+                .create("doctor")
                 .content(Self {
-                    id: d.get_oid_to_thing("_id", "pharma_salt").unwrap(),
+                    id: d.get_oid_to_thing("_id", "doctor").unwrap(),
                     name: d.get_string("name").unwrap(),
                     val_name: d.get_string("validateName").unwrap(),
                     display_name: d.get_string("displayName").unwrap(),
@@ -48,6 +48,6 @@ impl Doctor {
                 .cloned()
                 .unwrap();
         }
-        println!("pharma_salt download end");
+        println!("doctor download end");
     }
 }

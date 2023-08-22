@@ -9,9 +9,12 @@ use serde::{Deserialize, Serialize};
 use surrealdb::{engine::remote::ws::Client as SurrealClient, sql::Datetime, sql::Thing, Surreal};
 
 mod account;
+mod account_opening;
 mod account_transaction;
 mod bank_txn;
 mod batch;
+mod bill_allocation;
+mod branch;
 mod contact;
 mod desktop_client;
 mod discount_code;
@@ -24,9 +27,12 @@ mod section;
 mod unit;
 
 pub use account::Account;
+pub use account_opening::AccountOpening;
 pub use account_transaction::AccountTransaction;
 pub use bank_txn::BankTransaction;
 pub use batch::Batch;
+pub use bill_allocation::BillAllocation;
+pub use branch::Branch;
 pub use contact::Contact;
 pub use desktop_client::DesktopClient;
 pub use discount_code::DiscountCode;
@@ -37,7 +43,6 @@ pub use pharma_salt::PharmaSalt;
 pub use rack::Rack;
 pub use section::Section;
 pub use unit::Unit;
-
 #[derive(Deserialize, Clone)]
 pub struct Created {
     pub id: Thing,
@@ -72,6 +77,20 @@ pub struct GstInfo {
     pub location: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub gst_no: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ContactInfo {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mobile: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alternate_mobile: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub telephone: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contact_person: Option<String>,
 }
 
 pub trait Doc {
