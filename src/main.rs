@@ -7,8 +7,8 @@ use surrealdb::{
 mod model;
 
 use model::{
-    Account, AccountTransaction, Batch, DesktopClient, DiscountCode, Doctor, Inventory,
-    InventoryTransaction, PharmaSalt, Rack, Section, Unit,
+    Account, AccountTransaction, BankTransaction, Batch, Contact, DesktopClient, DiscountCode,
+    Doctor, Inventory, InventoryTransaction, PharmaSalt, Rack, Section, Unit,
 };
 
 pub static DB: Surreal<SurrealClient> = Surreal::init();
@@ -48,4 +48,6 @@ async fn main() {
     DesktopClient::create(&DB, &db).await;
     PharmaSalt::create(&DB, &db).await;
     DiscountCode::create(&DB, &db).await;
+    BankTransaction::create(&DB, &db).await;
+    Contact::create(&DB, &db).await;
 }

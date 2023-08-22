@@ -10,7 +10,9 @@ use surrealdb::{engine::remote::ws::Client as SurrealClient, sql::Datetime, sql:
 
 mod account;
 mod account_transaction;
+mod bank_txn;
 mod batch;
+mod contact;
 mod desktop_client;
 mod discount_code;
 mod doctor;
@@ -23,7 +25,9 @@ mod unit;
 
 pub use account::Account;
 pub use account_transaction::AccountTransaction;
+pub use bank_txn::BankTransaction;
 pub use batch::Batch;
+pub use contact::Contact;
 pub use desktop_client::DesktopClient;
 pub use discount_code::DiscountCode;
 pub use doctor::Doctor;
@@ -58,6 +62,16 @@ impl From<AmountInfo> for Bson {
     fn from(info: AmountInfo) -> Self {
         to_bson(&info).unwrap()
     }
+}
+
+#[derive(Debug, Serialize)]
+
+pub struct GstInfo {
+    pub reg_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub location: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub gst_no: Option<String>,
 }
 
 pub trait Doc {
