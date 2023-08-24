@@ -84,6 +84,6 @@ impl Branch {
                 .cloned()
                 .unwrap();
         }
-        println!("contact download end");
+        println!("branch download end");
     }
 }

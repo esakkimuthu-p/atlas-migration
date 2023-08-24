@@ -8,8 +8,9 @@ mod model;
 
 use model::{
     Account, AccountOpening, AccountTransaction, BankTransaction, Batch, BillAllocation, Branch,
-    Contact, DesktopClient, DiscountCode, Doctor, Inventory, InventoryTransaction, PharmaSalt,
-    Rack, Section, Unit,
+    CashRegister, Contact, DesktopClient, DiscountCode, Doctor, FinancialYear, Inventory,
+    InventoryHead, InventoryOpening, InventoryTransaction, Manufacturer, Member, PharmaSalt, Rack,
+    Section, Unit, VoucherNumbering,
 };
 
 pub static DB: Surreal<SurrealClient> = Surreal::init();
@@ -54,4 +55,11 @@ async fn main() {
     AccountOpening::create(&DB, &db).await;
     BillAllocation::create(&DB, &db).await;
     Branch::create(&DB, &db).await;
+    FinancialYear::create(&DB, &db).await;
+    VoucherNumbering::create(&DB, &db).await;
+    CashRegister::create(&DB, &db).await;
+    Manufacturer::create(&DB, &db).await;
+    InventoryHead::create(&DB, &db).await;
+    InventoryOpening::create(&DB, &db).await;
+    Member::create(&DB, &db).await;
 }
