@@ -38,6 +38,7 @@ mod tds_nature_of_payment;
 mod unit;
 mod vendor_inventory_map;
 mod voucher_numbering;
+mod voucher_type;
 
 pub use account::Account;
 pub use account_opening::AccountOpening;
@@ -69,6 +70,7 @@ pub use tds_nature_of_payment::TdsNatureOfPayment;
 pub use unit::Unit;
 pub use vendor_inventory_map::{VendorBillMap, VendorItemMap};
 pub use voucher_numbering::VoucherNumbering;
+pub use voucher_type::VoucherType;
 
 #[derive(Deserialize, Clone)]
 pub struct Created {
