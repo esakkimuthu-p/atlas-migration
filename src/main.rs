@@ -8,10 +8,10 @@ mod model;
 
 use model::{
     Account, AccountOpening, AccountTransaction, BankTransaction, Batch, BillAllocation, Branch,
-    CashRegister, Contact, DesktopClient, DiscountCode, Doctor, FinancialYear, Inventory,
-    InventoryHead, InventoryOpening, InventoryTransaction, Manufacturer, Member, Patient,
-    PharmaSalt, PosTerminal, PrintTemplate, Rack, SaleIncharge, Section, TdsNatureOfPayment, Unit,
-    VendorBillMap, VendorItemMap, VoucherNumbering, VoucherType,
+    CashRegister, Contact, DesktopClient, DiscountCode, Doctor, FinancialYear, GstRegistration,
+    Inventory, InventoryHead, InventoryOpening, InventoryTransaction, Manufacturer, Member,
+    Patient, PharmaSalt, PosTerminal, PrintTemplate, Rack, SaleIncharge, Section,
+    TdsNatureOfPayment, Unit, VendorBillMap, VendorItemMap, VoucherNumbering, VoucherType,
 };
 
 pub static DB: Surreal<SurrealClient> = Surreal::init();
@@ -70,5 +70,6 @@ async fn main() {
     // VendorItemMap::create(&DB, &db).await;
     // SaleIncharge::create(&DB, &db).await;
     // TdsNatureOfPayment::create(&DB, &db).await;
-    VoucherType::create(&DB, &db).await;
+    // VoucherType::create(&DB, &db).await;
+    GstRegistration::create(&DB, &db).await;
 }
