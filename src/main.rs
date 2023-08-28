@@ -10,7 +10,8 @@ use model::{
     Account, AccountOpening, AccountTransaction, BankTransaction, Batch, BillAllocation, Branch,
     CashRegister, Contact, DesktopClient, DiscountCode, Doctor, FinancialYear, Inventory,
     InventoryHead, InventoryOpening, InventoryTransaction, Manufacturer, Member, Patient,
-    PharmaSalt, PosTerminal, Rack, Section, Unit, VoucherNumbering,
+    PharmaSalt, PosTerminal, PrintTemplate, Rack, SaleIncharge, Section, TdsNatureOfPayment, Unit,
+    VendorBillMap, VendorItemMap, VoucherNumbering,
 };
 
 pub static DB: Surreal<SurrealClient> = Surreal::init();
@@ -64,4 +65,9 @@ async fn main() {
     Member::create(&DB, &db).await;
     Patient::create(&DB, &db).await;
     PosTerminal::create(&DB, &db).await;
+    PrintTemplate::create(&DB, &db).await;
+    VendorBillMap::create(&DB, &db).await;
+    VendorItemMap::create(&DB, &db).await;
+    SaleIncharge::create(&DB, &db).await;
+    TdsNatureOfPayment::create(&DB, &db).await;
 }

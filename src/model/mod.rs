@@ -30,9 +30,13 @@ mod member;
 mod patient;
 mod pharma_salt;
 mod pos_terminal;
+mod print_template;
 mod rack;
+mod sale_incharge;
 mod section;
+mod tds_nature_of_payment;
 mod unit;
+mod vendor_inventory_map;
 mod voucher_numbering;
 
 pub use account::Account;
@@ -57,9 +61,13 @@ pub use member::Member;
 pub use patient::Patient;
 pub use pharma_salt::PharmaSalt;
 pub use pos_terminal::PosTerminal;
+pub use print_template::PrintTemplate;
 pub use rack::Rack;
+pub use sale_incharge::SaleIncharge;
 pub use section::Section;
+pub use tds_nature_of_payment::TdsNatureOfPayment;
 pub use unit::Unit;
+pub use vendor_inventory_map::{VendorBillMap, VendorItemMap};
 pub use voucher_numbering::VoucherNumbering;
 
 #[derive(Deserialize, Clone)]
