@@ -27,7 +27,9 @@ mod inventory_opening;
 mod inventory_transaction;
 mod manufacturer;
 mod member;
+mod patient;
 mod pharma_salt;
+mod pos_terminal;
 mod rack;
 mod section;
 mod unit;
@@ -52,7 +54,9 @@ pub use inventory_opening::InventoryOpening;
 pub use inventory_transaction::InventoryTransaction;
 pub use manufacturer::Manufacturer;
 pub use member::Member;
+pub use patient::Patient;
 pub use pharma_salt::PharmaSalt;
+pub use pos_terminal::PosTerminal;
 pub use rack::Rack;
 pub use section::Section;
 pub use unit::Unit;
@@ -182,7 +186,7 @@ impl Doc for Document {
             .iter()
             .filter_map(|x| x.as_str())
         {
-            res.insert((coll.to_string(), item.to_string()).into());
+            res.insert((coll.to_string(), item.to_string().to_lowercase()).into());
         }
         (!res.is_empty()).then_some(res)
     }
