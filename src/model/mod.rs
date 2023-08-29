@@ -38,6 +38,7 @@ mod section;
 mod tds_nature_of_payment;
 mod unit;
 mod vendor_inventory_map;
+mod voucher;
 mod voucher_numbering;
 mod voucher_type;
 
@@ -71,6 +72,7 @@ pub use section::Section;
 pub use tds_nature_of_payment::TdsNatureOfPayment;
 pub use unit::Unit;
 pub use vendor_inventory_map::{VendorBillMap, VendorItemMap};
+pub use voucher::Voucher;
 pub use voucher_numbering::VoucherNumbering;
 pub use voucher_type::VoucherType;
 

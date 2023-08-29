@@ -56,12 +56,10 @@ impl VoucherType {
                 "SALE" => {
                     let allowed_credit_accounts = config_doc
                         .get_array_thing("allowedCreditAccounts", "account")
-                        .and_then(|x| {
-                            Some(
-                                x.into_iter()
-                                    .map(|y| y.to_string())
-                                    .collect::<Vec<String>>(),
-                            )
+                        .map(|x| {
+                            x.into_iter()
+                                .map(|y| y.to_string())
+                                .collect::<Vec<String>>()
                         });
                     let mut config = doc! {
                         "cash_register_enabled" : config_doc.get_bool("cashRegisterEnabled").unwrap_or_default(),
@@ -119,12 +117,10 @@ impl VoucherType {
                 "CREDIT_NOTE" => {
                     let allowed_credit_accounts = config_doc
                         .get_array_thing("allowedCreditAccounts", "account")
-                        .and_then(|x| {
-                            Some(
-                                x.into_iter()
-                                    .map(|y| y.to_string())
-                                    .collect::<Vec<String>>(),
-                            )
+                        .map(|x| {
+                            x.into_iter()
+                                .map(|y| y.to_string())
+                                .collect::<Vec<String>>()
                         });
                     let mut config = doc! {
                         "cash_register_enabled" : config_doc.get_bool("cashRegisterEnabled").unwrap_or_default(),
@@ -195,15 +191,6 @@ impl VoucherType {
                     doc! {"sale_quotation": config}
                 }
                 "PURCHASE" => {
-                    let allowed_credit_accounts = config_doc
-                        .get_array_thing("allowedCreditAccounts", "account")
-                        .and_then(|x| {
-                            Some(
-                                x.into_iter()
-                                    .map(|y| y.to_string())
-                                    .collect::<Vec<String>>(),
-                            )
-                        });
                     let mut config = doc! {
                         "cash_register_enabled" : config_doc.get_bool("cashRegisterEnabled").unwrap_or_default(),
                         "warehouse_enabled" : config_doc.get_bool("warehouseEnabled").unwrap_or_default(),
