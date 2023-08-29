@@ -7,7 +7,7 @@ use super::{
 pub struct AccountTransaction {
     pub date: Datetime,
     pub account: Thing,
-    // pub account_name: String,
+    pub account_name: String,
     pub account_type: Thing,
     pub act: bool,
     pub act_hide: bool,
@@ -19,8 +19,8 @@ pub struct AccountTransaction {
     pub is_opening: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub alt_account: Option<Thing>,
-    // #[serde(skip_serializing_if = "Option::is_none")]
-    // pub alt_account_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alt_account_name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ref_no: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -89,13 +89,10 @@ impl AccountTransaction {
                     debit: d._get_f64("debit").unwrap(),
                     credit: d._get_f64("credit").unwrap(),
                     account: d.get_oid_to_thing("account", "account").unwrap(),
-                    // account_name: d.get_string("accountName").unwrap(),
+                    account_name: d.get_string("accountName").unwrap(),
                     account_type: (
                         "account_type".to_string(),
-                        d.get_string("accountType")
-                            .unwrap()
-                            .to_string()
-                            .to_lowercase(),
+                        d.get_string("accountType").unwrap().to_lowercase(),
                     )
                         .into(),
                     branch: d.get_oid_to_thing("branch", "branch").unwrap(),
@@ -103,7 +100,7 @@ impl AccountTransaction {
                     act: d.get_bool("act").unwrap_or_default(),
                     act_hide: d.get_bool("actHide").unwrap_or_default(),
                     alt_account: d.get_oid_to_thing("altAccount", "account"),
-                    // alt_account_name: d.get_string("altAccountName"),
+                    alt_account_name: d.get_string("altAccountName"),
                     ref_no: d.get_string("refNo"),
                     voucher_no: d.get_string("voucherNo"),
                     base_voucher_type: d

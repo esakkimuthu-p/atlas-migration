@@ -31,7 +31,7 @@ pub struct Inventory {
     pub precision: u8,
     pub head: Thing,
     pub allow_negative_stock: bool,
-    pub tax: Thing,
+    pub gst_tax: Thing,
     pub units: Vec<InventoryUnit>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub cess: Option<InventoryCess>,
@@ -131,7 +131,7 @@ impl Inventory {
                     precision: d._get_f64("precision").unwrap() as u8,
                     head: d.get_oid_to_thing("head", "inventory_head").unwrap(),
                     allow_negative_stock: d.get_bool("allowNegativeStock").unwrap_or_default(),
-                    tax: ("tax".to_string(), d.get_string("tax").unwrap()).into(), // gst0.1....
+                    gst_tax: ("gst_tax".to_string(), d.get_string("tax").unwrap()).into(),
                     units,
                     cess,
                     barcodes: (!barcodes.is_empty()).then_some(barcodes),

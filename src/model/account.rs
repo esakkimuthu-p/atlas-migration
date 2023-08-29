@@ -19,7 +19,7 @@ pub struct Account {
     pub in_favour_of: Option<String>,
     pub account_type: Thing,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub tax: Option<Thing>,
+    pub gst_tax: Option<Thing>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub gst_type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -62,12 +62,8 @@ impl Account {
         while let Some(Ok(d)) = cur.next().await {
             let mut id = d.get_oid_to_thing("_id", "account").unwrap();
             let mut is_default = None;
-            if let Ok(default_acc) = d.get_str("defaultName") {
-                id = (
-                    "account".to_string(),
-                    default_acc.to_string().to_lowercase(),
-                )
-                    .into();
+            if let Some(default_acc) = d.get_string("defaultName") {
+                id = ("account".to_string(), default_acc.to_lowercase()).into();
                 is_default = Some(true);
             }
             let _created: Created = surrealdb
@@ -83,13 +79,12 @@ impl Account {
                     in_favour_of: d.get_string("inFavourOf"),
                     account_type: (
                         "account_type".to_string(),
-                        d.get_string("accountType")
-                            .unwrap()
-                            .to_string()
-                            .to_lowercase(),
+                        d.get_string("accountType").unwrap().to_lowercase(),
                     )
                         .into(),
-                    tax: d.get_string("tax").map(|x| ("tax".to_string(), x).into()),
+                    gst_tax: d
+                        .get_string("tax")
+                        .map(|x| ("gst_tax".to_string(), x).into()),
                     gst_type: d.get_string("gstType"),
                     sac_code: d.get_string("sacCode"),
                     parent_account: d.get_oid_to_thing("parentAccount", "account"),
