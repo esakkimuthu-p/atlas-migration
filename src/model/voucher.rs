@@ -2,7 +2,7 @@ use super::{
     doc, serialize_round_2, Created, Database, Datetime, Doc, Document, Serialize, StreamExt,
     Surreal, SurrealClient, Thing,
 };
-use crate::model::{AccountTransaction, InventoryTransaction};
+use crate::model::{AccountTransaction, BankTransaction, InventoryTransaction};
 use futures_util::TryStreamExt;
 use mongodb::options::FindOptions;
 
@@ -257,6 +257,7 @@ impl Voucher {
                     let (cr_alt, dr_alt) = get_alt_accounts(&ac_trns, &accounts);
                     for ac_trn in ac_trns {
                         let credit = ac_trn._get_f64("credit").unwrap();
+                        let account_type = ac_trn.get_string("accountType").unwrap().to_lowercase();
                         let alt_account = if credit > 0.0 {
                             cr_alt.clone()
                         } else {
@@ -281,6 +282,48 @@ impl Voucher {
                                     account_doc.get_string("displayName").unwrap(),
                                 )
                             };
+                        if ["bank_account".to_string(), "bank_od_account".to_string()]
+                            .contains(&account_type)
+                        {
+                            let (inst_no, inst_date, in_favour_of) =
+                                if let Some(cheque_detail) = ac_trn._get_document("chequeDetail") {
+                                    (
+                                        cheque_detail.get_string("instNo"),
+                                        cheque_detail.get_surreal_datetime_from_str("instDate"),
+                                        cheque_detail.get_string("inFavourOf"),
+                                    )
+                                } else {
+                                    (None, None, None)
+                                };
+                            let _created: Created = surrealdb
+                                .create("bank_txn")
+                                .content(BankTransaction {
+                                    date: date.clone(),
+                                    debit: ac_trn._get_f64("debit").unwrap_or_default(),
+                                    credit: ac_trn._get_f64("credit").unwrap_or_default(),
+                                    account: account.clone(),
+                                    account_name: account_name.clone(),
+                                    account_type: (
+                                        "account_type".to_string(),
+                                        account_type.clone(),
+                                    )
+                                        .into(),
+                                    branch: branch.clone(),
+                                    branch_name: branch_name.clone(),
+                                    alt_account: alt_account.clone().map(|x| x.0),
+                                    alt_account_name: alt_account.clone().map(|x| x.1),
+                                    inst_no,
+                                    in_favour_of,
+                                    voucher: Some(id.clone()),
+                                    bank_date: None,
+                                    inst_date,
+                                })
+                                .await
+                                .unwrap()
+                                .first()
+                                .cloned()
+                                .unwrap();
+                        }
                         let _created: Created = surrealdb
                             .create("account_transaction")
                             .content(AccountTransaction {
@@ -289,11 +332,7 @@ impl Voucher {
                                 credit,
                                 account,
                                 account_name,
-                                account_type: (
-                                    "account_type".to_string(),
-                                    ac_trn.get_string("accountType").unwrap().to_lowercase(),
-                                )
-                                    .into(),
+                                account_type: ("account_type".to_string(), account_type).into(),
                                 branch: branch.clone(),
                                 branch_name: branch_name.clone(),
                                 act,
