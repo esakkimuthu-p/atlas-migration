@@ -274,6 +274,6 @@ impl PosTerminal {
                 .cloned()
                 .unwrap();
         }
-        println!("member download end");
+        println!("pos_terminal download end");
     }
 }

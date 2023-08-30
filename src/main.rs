@@ -7,11 +7,11 @@ use surrealdb::{
 mod model;
 
 use model::{
-    Account, AccountOpening, AccountTransaction, BankTransaction, Batch, BillAllocation, Branch,
-    CashRegister, Contact, DesktopClient, DiscountCode, Doctor, FinancialYear, GstRegistration,
-    Inventory, InventoryHead, InventoryOpening, InventoryTransaction, Manufacturer, Member,
-    Patient, PharmaSalt, PosTerminal, PrintTemplate, Rack, SaleIncharge, Section,
-    TdsNatureOfPayment, Unit, VendorBillMap, VendorItemMap, Voucher, VoucherNumbering, VoucherType,
+    Account, AccountOpening, BankTransaction, Batch, BillAllocation, Branch, CashRegister, Contact,
+    DesktopClient, DiscountCode, Doctor, FinancialYear, GstRegistration, Inventory, InventoryHead,
+    InventoryOpening, Manufacturer, Member, Patient, PharmaSalt, PosTerminal, PrintTemplate, Rack,
+    SaleIncharge, Section, TdsNatureOfPayment, Unit, VendorBillMap, VendorItemMap, Voucher,
+    VoucherNumbering, VoucherType,
 };
 
 pub static DB: Surreal<SurrealClient> = Surreal::init();
@@ -40,10 +40,8 @@ async fn main() {
         .unwrap();
     println!("{:?}", db.name());
     Account::create(&DB, &db).await;
-    AccountTransaction::create(&DB, &db).await;
     Batch::create(&DB, &db).await;
     Rack::create(&DB, &db).await;
-    InventoryTransaction::create(&DB, &db).await;
     Inventory::create(&DB, &db).await;
     Section::create(&DB, &db).await;
     Unit::create(&DB, &db).await;

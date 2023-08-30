@@ -1,6 +1,6 @@
 use super::{
-    doc, Created, Database, Datetime, Doc, Document, HashSet, Serialize, StreamExt, Surreal,
-    SurrealClient, Thing,
+    doc, serialize_opt_round_2, serialize_round_4, Created, Database, Datetime, Doc, Document,
+    HashSet, Serialize, StreamExt, Surreal, SurrealClient, Thing,
 };
 
 #[derive(Debug, Serialize)]
@@ -14,27 +14,53 @@ pub struct Batch {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub batch_no: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub expiry: Option<String>,
-    pub last_inward: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expiry: Option<Datetime>,
+    pub last_inward: Datetime,
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "serialize_opt_round_2"
+    )]
     pub mrp: Option<f64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "serialize_opt_round_2"
+    )]
     pub s_rate: Option<f64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "serialize_opt_round_2"
+    )]
     pub p_rate: Option<f64>,
     pub p_rate_tax_inc: bool,
     pub s_rate_tax_inc: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "serialize_opt_round_2"
+    )]
     pub avg_nlc: Option<f64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "serialize_opt_round_2"
+    )]
     pub min_nlc: Option<f64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "serialize_opt_round_2"
+    )]
     pub max_nlc: Option<f64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "serialize_opt_round_2"
+    )]
     pub first_nlc: Option<f64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "serialize_opt_round_2"
+    )]
     pub last_nlc: Option<f64>,
+    #[serde(serialize_with = "serialize_round_4")]
     pub inward: f64,
+    #[serde(serialize_with = "serialize_round_4")]
     pub outward: f64,
     pub unit: Thing,
     pub unit_name: String,
@@ -100,12 +126,12 @@ impl Batch {
                     id: d.get_oid_to_thing("_id", "batch").unwrap(),
                     barcode: d.get_object_id("barcode").unwrap().to_hex(),
                     batch_no: d.get_string("batchNo"),
-                    last_inward: d.get_string("lastInward").unwrap_or_default(),
+                    last_inward: d.get_surreal_datetime_from_str("lastInward").unwrap(),
                     inward: d._get_f64("inward").unwrap(),
                     outward: d._get_f64("outward").unwrap(),
                     inventory: d.get_oid_to_thing("inventory", "inventory").unwrap(),
                     inventory_name: d.get_string("inventoryName").unwrap(),
-                    expiry: d.get_string("expiry"),
+                    expiry: d.get_surreal_datetime_from_str("expiry"),
                     branch: d.get_oid_to_thing("branch", "branch").unwrap(),
                     branch_name: d.get_string("branchName").unwrap(),
                     unit_conv: d._get_f64("unitConv").unwrap(),

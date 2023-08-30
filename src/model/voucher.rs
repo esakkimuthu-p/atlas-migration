@@ -1,8 +1,8 @@
 use super::{
-    doc, Created, Database, Datetime, Doc, Document, Serialize, StreamExt, Surreal, SurrealClient,
-    Thing,
+    doc, serialize_round_2, Created, Database, Datetime, Doc, Document, Serialize, StreamExt,
+    Surreal, SurrealClient, Thing,
 };
-use crate::model::AccountTransaction;
+use crate::model::{AccountTransaction, InventoryTransaction};
 use futures_util::TryStreamExt;
 use mongodb::options::FindOptions;
 
@@ -18,11 +18,16 @@ pub struct Voucher {
     pub eff_date: Datetime,
     pub voucher_no: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub contact: Option<Thing>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contact_name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub mode: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ref_no: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
+    #[serde(serialize_with = "serialize_round_2")]
     pub amount: f64,
     pub created: Datetime,
     pub updated: Datetime,
@@ -111,6 +116,12 @@ impl Voucher {
             .unwrap()
             .take::<Option<()>>(0)
             .unwrap();
+        surrealdb
+            .query("DEFINE INDEX date ON TABLE voucher COLUMNS date")
+            .await
+            .unwrap()
+            .take::<Option<()>>(0)
+            .unwrap();
         println!("voucher INDEX end");
         println!("voucher download start");
         let acc_find_opts = FindOptions::builder()
@@ -119,6 +130,17 @@ impl Voucher {
         let accounts = mongodb
             .collection::<Document>("accounts")
             .find(doc! {}, acc_find_opts)
+            .await
+            .unwrap()
+            .try_collect::<Vec<Document>>()
+            .await
+            .unwrap();
+        let inv_find_opts = FindOptions::builder()
+            .projection(doc! { "displayName": 1, "sectionId": 1, "sectionName": 1, "manufacturerId":1, "manufacturerName": 1 })
+            .build();
+        let inventories = mongodb
+            .collection::<Document>("inventories")
+            .find(doc! {}, inv_find_opts)
             .await
             .unwrap()
             .try_collect::<Vec<Document>>()
@@ -143,7 +165,7 @@ impl Voucher {
             "contras",
         ] {
             println!("{} download start", collection);
-            let find_opts = FindOptions::builder().limit(10).build();
+            let find_opts = FindOptions::builder().limit(100).build();
             let mut cur = mongodb
                 .collection::<Document>(collection)
                 .find(doc! {}, find_opts)
@@ -151,12 +173,21 @@ impl Voucher {
                 .unwrap();
 
             while let Some(Ok(d)) = cur.next().await {
-                let mode = if ["sales", "credit_nodes", "debit_notes", "purchases"]
-                    .contains(&collection)
+                let (mode, contact, contact_name) = if [
+                    "sales",
+                    "credit_nodes",
+                    "debit_notes",
+                    "purchases",
+                ]
+                .contains(&collection)
                 {
-                    d.get_string("mode")
+                    let contact = d
+                        .get_oid_to_thing("vendor", "contact")
+                        .or(d.get_oid_to_thing("customer", "contact"));
+                    let contact_name = d.get_string("vendorName").or(d.get_string("customerName"));
+                    (d.get_string("mode"), contact, contact_name)
                 } else {
-                    None
+                    (None, None, None)
                 };
                 let id = d.get_oid_to_thing("_id", "voucher").unwrap();
                 let branch = d.get_oid_to_thing("branch", "branch").unwrap();
@@ -203,17 +234,19 @@ impl Voucher {
                         branch: branch.clone(),
                         eff_date,
                         date: date.clone(),
-                        ref_no,
-                        description: d.get_string("description"),
-                        created: d.get_surreal_datetime("createdAt").unwrap(),
-                        updated: d.get_surreal_datetime("updatedAt").unwrap(),
+                        ref_no: ref_no.clone(),
+                        contact: contact.clone(),
+                        contact_name: contact_name.clone(),
                         voucher_type,
                         base_voucher_type: base_voucher_type.clone(),
                         act,
                         act_hide,
-                        mode,
+                        mode: mode.clone(),
                         voucher_no,
+                        description: d.get_string("description"),
                         amount: d._get_f64("amount").unwrap_or_default(),
+                        created: d.get_surreal_datetime("createdAt").unwrap(),
+                        updated: d.get_surreal_datetime("updatedAt").unwrap(),
                     })
                     .await
                     .unwrap()
@@ -267,12 +300,94 @@ impl Voucher {
                                 act_hide,
                                 alt_account: alt_account.clone().map(|x| x.0),
                                 alt_account_name: alt_account.map(|x| x.1),
-                                ref_no: ac_trn.get_string("refNo"),
-                                voucher_no: ac_trn.get_string("voucherNo"),
+                                ref_no: ref_no.clone(),
                                 base_voucher_type: Some(base_voucher_type.clone()),
                                 voucher: Some(id.clone()),
-                                is_opening: ac_trn.get_bool("isOpening").ok(),
-                                voucher_mode: ac_trn.get_string("voucherMode"),
+                                is_opening: None,
+                                voucher_mode: mode.clone(),
+                            })
+                            .await
+                            .unwrap()
+                            .first()
+                            .cloned()
+                            .unwrap();
+                    }
+                }
+                if let Some(inv_trns) = d.get_array_document("invTrns") {
+                    for inv_trn in inv_trns {
+                        let qty = inv_trn._get_f64("qty");
+                        let free_qty = inv_trn._get_f64("freeQty");
+                        let unit_conv = inv_trn._get_f64("unitConv").unwrap();
+                        let mut nlc = None;
+                        let (inward, outward) = {
+                            match collection {
+                                "sales" => (0.0, qty.unwrap() * unit_conv),
+                                "purchases" => {
+                                    let inward = (qty.unwrap_or_default()
+                                        + free_qty.unwrap_or_default())
+                                        * unit_conv;
+                                    nlc = Some(
+                                        inv_trn._get_f64("taxableAmount").unwrap_or_default()
+                                            / inward,
+                                    );
+                                    (inward, 0.0)
+                                }
+                                "credit_notes" => (0.0, -qty.unwrap() * unit_conv),
+                                "debit_notes" => (-qty.unwrap() * unit_conv, 0.0),
+                                _ => todo!(),
+                            }
+                        };
+                        let inventory_doc = inventories
+                            .iter()
+                            .find(|x| {
+                                x.get_object_id("_id").unwrap()
+                                    == inv_trn.get_object_id("inventory").unwrap()
+                            })
+                            .unwrap();
+                        let _created: Created = surrealdb
+                            .create("inventory_transaction")
+                            .content(InventoryTransaction {
+                                date: date.clone(),
+                                inward,
+                                outward,
+                                free_qty,
+                                qty: qty.unwrap_or_default(),
+                                rate: inv_trn._get_f64("rate").unwrap(),
+                                unit_precision: inv_trn._get_f64("unitPrecision").unwrap() as u8,
+                                branch: branch.clone(),
+                                branch_name: branch_name.clone(),
+                                gst_tax: (
+                                    "gst_tax".to_string(),
+                                    inv_trn.get_string("tax").unwrap(),
+                                )
+                                    .into(),
+                                disc: inv_trn._get_document("disc"),
+                                act,
+                                act_hide,
+                                ref_no: ref_no.clone(),
+                                base_voucher_type: Some(base_voucher_type.clone()),
+                                voucher: Some(id.clone()),
+                                is_opening: None,
+                                batch: inv_trn.get_oid_to_thing("batch", "batch").unwrap(),
+                                inventory: inv_trn
+                                    .get_oid_to_thing("inventory", "inventory")
+                                    .unwrap(),
+                                inventory_name: inventory_doc.get_string("displayName").unwrap(),
+                                unit_conv,
+                                section: inventory_doc.get_oid_to_thing("sectionId", "section"),
+                                section_name: inventory_doc.get_string("sectionName"),
+                                manufacturer: inventory_doc
+                                    .get_oid_to_thing("manufacturerId", "manufacturer"),
+                                manufacturer_name: inventory_doc.get_string("manufacturerName"),
+                                contact: contact.clone(),
+                                contact_name: contact_name.clone(),
+                                asset_amount: inv_trn._get_f64("assetAmount"),
+                                taxable_amount: inv_trn._get_f64("taxableAmount"),
+                                cgst_amount: inv_trn._get_f64("cgstAmount"),
+                                cess_amount: inv_trn._get_f64("cessAmount"),
+                                sgst_amount: inv_trn._get_f64("sgstAmount"),
+                                igst_amount: inv_trn._get_f64("igstAmount"),
+                                nlc,
                             })
                             .await
                             .unwrap()

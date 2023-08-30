@@ -16,23 +16,23 @@ pub struct Unit {
 
 impl Unit {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("rack INDEX start");
+        println!("unit INDEX start");
         surrealdb
-            .query("DEFINE INDEX val_name ON TABLE rack COLUMNS val_name")
+            .query("DEFINE INDEX val_name ON TABLE unit COLUMNS val_name")
             .await
             .unwrap()
             .take::<Option<()>>(0)
             .unwrap();
-        println!("rack INDEX end");
-        println!("rack download start");
+        println!("unit INDEX end");
+        println!("unit download start");
         let mut cur = mongodb
-            .collection::<Document>("racks")
+            .collection::<Document>("units")
             .find(doc! {}, None)
             .await
             .unwrap();
         while let Some(Ok(d)) = cur.next().await {
             let _created: Created = surrealdb
-                .create("rack")
+                .create("unit")
                 .content(Self {
                     id: d.get_oid_to_thing("_id", "unit").unwrap(),
                     name: d.get_string("name").unwrap(),
@@ -41,7 +41,7 @@ impl Unit {
                     symbol: d.get_string("symbol").unwrap(),
                     uqc: (
                         "uqc".to_string(),
-                        d.get_string("uqc").unwrap().to_string().to_lowercase(),
+                        d.get_string("uqc").unwrap().to_lowercase(),
                     )
                         .into(),
                     created: d.get_surreal_datetime("createdAt").unwrap(),
@@ -53,6 +53,6 @@ impl Unit {
                 .cloned()
                 .unwrap();
         }
-        println!("rack download end");
+        println!("unit download end");
     }
 }

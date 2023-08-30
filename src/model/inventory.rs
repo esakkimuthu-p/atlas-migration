@@ -2,6 +2,7 @@ use super::{
     doc, Created, Database, Datetime, Deserialize, Doc, Document, HashSet, Serialize, StreamExt,
     Surreal, SurrealClient, Thing,
 };
+use futures_util::TryStreamExt;
 use mongodb::bson::from_document;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -92,7 +93,30 @@ impl Inventory {
             .find(doc! {}, None)
             .await
             .unwrap();
+        let inventory_heads = mongodb
+            .collection::<Document>("inventory_heads")
+            .find(doc! {}, None)
+            .await
+            .unwrap()
+            .try_collect::<Vec<Document>>()
+            .await
+            .unwrap();
         while let Some(Ok(d)) = cur.next().await {
+            let inventory_head_doc = inventory_heads
+                .iter()
+                .find(|x| x.get_object_id("_id").unwrap() == d.get_object_id("head").unwrap())
+                .unwrap();
+            let head = if inventory_head_doc.get_string("defaultName").is_some()
+                || inventory_head_doc
+                    .get_string("name")
+                    .unwrap_or_default()
+                    .to_lowercase()
+                    == "default"
+            {
+                ("inventory_head".to_string(), "default".to_string()).into()
+            } else {
+                d.get_oid_to_thing("head", "inventory_head").unwrap()
+            };
             let cess = d
                 .get_document("cess")
                 .ok()
@@ -129,7 +153,7 @@ impl Inventory {
                     val_name: d.get_string("validateName").unwrap(),
                     display_name: d.get_string("displayName").unwrap(),
                     precision: d._get_f64("precision").unwrap() as u8,
-                    head: d.get_oid_to_thing("head", "inventory_head").unwrap(),
+                    head,
                     allow_negative_stock: d.get_bool("allowNegativeStock").unwrap_or_default(),
                     gst_tax: ("gst_tax".to_string(), d.get_string("tax").unwrap()).into(),
                     units,

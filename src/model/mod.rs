@@ -5,7 +5,7 @@ use mongodb::{
     bson::{doc, to_bson, Bson, Document},
     Database,
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, Serializer};
 use surrealdb::{engine::remote::ws::Client as SurrealClient, sql::Datetime, sql::Thing, Surreal};
 
 mod account;
@@ -75,6 +75,30 @@ pub use vendor_inventory_map::{VendorBillMap, VendorItemMap};
 pub use voucher::Voucher;
 pub use voucher_numbering::VoucherNumbering;
 pub use voucher_type::VoucherType;
+
+fn serialize_round_2<S: Serializer>(val: &f64, ser: S) -> Result<S::Ok, S::Error> {
+    let x = (val * 10_f64.powi(2)).round() / 10_f64.powi(2);
+    x.serialize(ser)
+}
+
+fn serialize_round_4<S: Serializer>(val: &f64, ser: S) -> Result<S::Ok, S::Error> {
+    let x = (val * 10_f64.powi(4)).round() / 10_f64.powi(4);
+    x.serialize(ser)
+}
+
+fn serialize_opt_round_2<S: Serializer>(val: &Option<f64>, ser: S) -> Result<S::Ok, S::Error> {
+    match val {
+        Some(num) => ((num * 10_f64.powi(2)).round() / 10_f64.powi(2)).serialize(ser),
+        _ => unreachable!(),
+    }
+}
+
+fn serialize_opt_round_4<S: Serializer>(val: &Option<f64>, ser: S) -> Result<S::Ok, S::Error> {
+    match val {
+        Some(num) => ((num * 10_f64.powi(4)).round() / 10_f64.powi(4)).serialize(ser),
+        _ => unreachable!(),
+    }
+}
 
 #[derive(Deserialize, Clone)]
 pub struct Created {
