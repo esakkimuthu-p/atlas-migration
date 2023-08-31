@@ -1,6 +1,6 @@
 use super::{
-    doc, Created, Database, Datetime, Doc, Document, Serialize, StreamExt, Surreal, SurrealClient,
-    Thing,
+    doc, serialize_round_2, Created, Database, Datetime, Doc, Document, Serialize, StreamExt,
+    Surreal, SurrealClient, Thing,
 };
 
 #[derive(Debug, Serialize)]
@@ -8,7 +8,9 @@ pub struct AccountOpening {
     pub id: Thing,
     pub account: Thing,
     pub branch: Thing,
+    #[serde(serialize_with = "serialize_round_2")]
     pub credit: f64,
+    #[serde(serialize_with = "serialize_round_2")]
     pub debit: f64,
     pub act_hide: bool,
     pub act: bool,

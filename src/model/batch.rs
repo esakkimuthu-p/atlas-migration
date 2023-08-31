@@ -64,6 +64,7 @@ pub struct Batch {
     pub outward: f64,
     pub unit: Thing,
     pub unit_name: String,
+    #[serde(serialize_with = "serialize_round_4")]
     pub unit_conv: f64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub section: Option<Thing>,

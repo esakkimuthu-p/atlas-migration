@@ -1,6 +1,6 @@
 use super::{
-    doc, Created, Database, Datetime, Doc, Document, Serialize, StreamExt, Surreal, SurrealClient,
-    Thing,
+    doc, serialize_round_2, Created, Database, Datetime, Doc, Document, Serialize, StreamExt,
+    Surreal, SurrealClient, Thing,
 };
 
 #[derive(Debug, Serialize)]
@@ -12,6 +12,7 @@ pub struct BillAllocation {
     pub branch_name: String,
     pub date: Datetime,
     pub eff_date: Datetime,
+    #[serde(serialize_with = "serialize_round_2")]
     pub amount: f64,
     pub txn_id: Thing,
     pub pending: Thing,

@@ -22,6 +22,7 @@ pub struct InventoryTransaction {
     pub rate: f64,
     #[serde(serialize_with = "serialize_round_4")]
     pub qty: f64,
+    #[serde(serialize_with = "serialize_round_4")]
     pub unit_conv: f64,
     pub unit_precision: u8,
     #[serde(
@@ -86,6 +87,8 @@ pub struct InventoryTransaction {
     pub nlc: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_opening: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sale_inc: Option<Thing>,
 }
 
 // impl InventoryTransaction {

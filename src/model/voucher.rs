@@ -1,10 +1,28 @@
 use super::{
-    doc, serialize_round_2, Created, Database, Datetime, Doc, Document, Serialize, StreamExt,
-    Surreal, SurrealClient, Thing, GST_TAX_MAPPING,
+    doc, serialize_opt_round_2, serialize_round_2, Created, Database, Datetime, Doc, Document,
+    Serialize, StreamExt, Surreal, SurrealClient, Thing, GST_TAX_MAPPING,
 };
 use crate::model::{AccountTransaction, BankTransaction, InventoryTransaction};
 use futures_util::TryStreamExt;
 use mongodb::options::FindOptions;
+
+#[derive(Debug, Serialize)]
+pub struct TaxSummary {
+    pub gst_tax: Thing,
+    #[serde(serialize_with = "serialize_round_2")]
+    pub taxable_amount: f64,
+    #[serde(serialize_with = "serialize_round_2")]
+    pub igst_amount: f64,
+    #[serde(serialize_with = "serialize_round_2")]
+    pub cgst_amount: f64,
+    #[serde(serialize_with = "serialize_round_2")]
+    pub sgst_amount: f64,
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "serialize_opt_round_2"
+    )]
+    pub cess_amount: Option<f64>,
+}
 
 #[derive(Debug, Serialize)]
 pub struct Voucher {
@@ -31,6 +49,8 @@ pub struct Voucher {
     pub amount: f64,
     pub created: Datetime,
     pub updated: Datetime,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tax_summary: Option<Vec<TaxSummary>>,
 }
 
 fn get_alt_accounts(
@@ -155,8 +175,8 @@ impl Voucher {
             .await
             .unwrap();
         for collection in [
-            "payments",
-            "receipts",
+            // "payments",
+            // "receipts",
             "sales",
             "purchases",
             "credit_notes",
@@ -227,6 +247,26 @@ impl Voucher {
                         )
                     })
                     .unwrap_or(d.get_oid_to_thing("voucherTypeId", "voucher_type").unwrap());
+                let mut tax_summary = Vec::new();
+                if let Some(tax_sums) = d.get_array_document("taxSummary") {
+                    for tax_sum in tax_sums {
+                        let gst_tax = GST_TAX_MAPPING
+                            .iter()
+                            .find_map(|x| {
+                                (*x.0 == tax_sum.get_string("tax").unwrap().as_str())
+                                    .then_some(("gst_tax".to_string(), x.1.to_string()).into())
+                            })
+                            .unwrap();
+                        tax_summary.push(TaxSummary {
+                            gst_tax,
+                            taxable_amount: tax_sum._get_f64("taxableAmount").unwrap_or_default(),
+                            igst_amount: tax_sum._get_f64("igstAmount").unwrap_or_default(),
+                            cgst_amount: tax_sum._get_f64("cgstAmount").unwrap_or_default(),
+                            sgst_amount: tax_sum._get_f64("sgstAmount").unwrap_or_default(),
+                            cess_amount: tax_sum._get_f64("cessAmount"),
+                        });
+                    }
+                }
                 let _created: Created = surrealdb
                     .create("voucher")
                     .content(Self {
@@ -247,6 +287,7 @@ impl Voucher {
                         amount: d._get_f64("amount").unwrap_or_default(),
                         created: d.get_surreal_datetime("createdAt").unwrap(),
                         updated: d.get_surreal_datetime("updatedAt").unwrap(),
+                        tax_summary: (!tax_summary.is_empty()).then_some(tax_summary),
                     })
                     .await
                     .unwrap()
@@ -259,7 +300,7 @@ impl Voucher {
                         let credit = ac_trn._get_f64("credit").unwrap();
                         let account_type = ac_trn.get_string("accountType").unwrap().to_lowercase();
                         let mut gst_tax = None;
-                        if let Some(ref tax) = d.get_string("tax") {
+                        if let Some(ref tax) = ac_trn.get_string("tax") {
                             gst_tax = GST_TAX_MAPPING.iter().find_map(|x| {
                                 (*x.0 == tax)
                                     .then_some(("gst_tax".to_string(), x.1.to_string()).into())
@@ -369,7 +410,7 @@ impl Voucher {
                         let gst_tax = GST_TAX_MAPPING
                             .iter()
                             .find_map(|x| {
-                                (*x.0 == d.get_string("tax").unwrap().as_str())
+                                (*x.0 == inv_trn.get_string("tax").unwrap().as_str())
                                     .then_some(("gst_tax".to_string(), x.1.to_string()).into())
                             })
                             .unwrap();
@@ -425,6 +466,7 @@ impl Voucher {
                                     .unwrap(),
                                 inventory_name: inventory_doc.get_string("displayName").unwrap(),
                                 unit_conv,
+                                sale_inc: inv_trn.get_oid_to_thing("sInc", "sale_incharge "),
                                 section: inventory_doc.get_oid_to_thing("sectionId", "section"),
                                 section_name: inventory_doc.get_string("sectionName"),
                                 manufacturer: inventory_doc
