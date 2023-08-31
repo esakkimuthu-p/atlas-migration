@@ -1,6 +1,6 @@
 use super::{
     doc, Created, Database, Datetime, Deserialize, Doc, Document, HashSet, Serialize, StreamExt,
-    Surreal, SurrealClient, Thing,
+    Surreal, SurrealClient, Thing, GST_TAX_MAPPING,
 };
 use futures_util::TryStreamExt;
 use mongodb::bson::from_document;
@@ -145,6 +145,17 @@ impl Inventory {
                         .then_some(x.as_str().unwrap_or_default().to_string())
                 })
                 .collect::<HashSet<String>>();
+            // let gst_tax_map = GST_TAX_MAPPING
+            //     .iter()
+            //     .find(|x| x.0 == &d.get_string("tax").unwrap().as_str())
+            //     .unwrap();
+            let gst_tax = GST_TAX_MAPPING
+                .iter()
+                .find_map(|x| {
+                    (*x.0 == d.get_string("tax").unwrap().as_str())
+                        .then_some(("gst_tax".to_string(), x.1.to_string()).into())
+                })
+                .unwrap();
             let _created: Created = surrealdb
                 .create("inventory")
                 .content(Self {
@@ -155,7 +166,7 @@ impl Inventory {
                     precision: d._get_f64("precision").unwrap() as u8,
                     head,
                     allow_negative_stock: d.get_bool("allowNegativeStock").unwrap_or_default(),
-                    gst_tax: ("gst_tax".to_string(), d.get_string("tax").unwrap()).into(),
+                    gst_tax,
                     units,
                     cess,
                     barcodes: (!barcodes.is_empty()).then_some(barcodes),

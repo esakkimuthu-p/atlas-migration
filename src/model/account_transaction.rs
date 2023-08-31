@@ -23,6 +23,10 @@ pub struct AccountTransaction {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ref_no: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_default: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub gst_tax: Option<Thing>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub voucher: Option<Thing>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub base_voucher_type: Option<Thing>,

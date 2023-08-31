@@ -1,6 +1,6 @@
 use super::{
     doc, serialize_round_2, Created, Database, Datetime, Doc, Document, Serialize, StreamExt,
-    Surreal, SurrealClient, Thing,
+    Surreal, SurrealClient, Thing, GST_TAX_MAPPING,
 };
 use crate::model::{AccountTransaction, BankTransaction, InventoryTransaction};
 use futures_util::TryStreamExt;
@@ -258,6 +258,13 @@ impl Voucher {
                     for ac_trn in ac_trns {
                         let credit = ac_trn._get_f64("credit").unwrap();
                         let account_type = ac_trn.get_string("accountType").unwrap().to_lowercase();
+                        let mut gst_tax = None;
+                        if let Some(ref tax) = d.get_string("tax") {
+                            gst_tax = GST_TAX_MAPPING.iter().find_map(|x| {
+                                (*x.0 == tax)
+                                    .then_some(("gst_tax".to_string(), x.1.to_string()).into())
+                            });
+                        }
                         let alt_account = if credit > 0.0 {
                             cr_alt.clone()
                         } else {
@@ -343,6 +350,8 @@ impl Voucher {
                                 base_voucher_type: Some(base_voucher_type.clone()),
                                 voucher: Some(id.clone()),
                                 is_opening: None,
+                                is_default: ac_trn.get_bool("isDefault").ok(),
+                                gst_tax,
                                 voucher_mode: mode.clone(),
                             })
                             .await
@@ -357,6 +366,13 @@ impl Voucher {
                         let qty = inv_trn._get_f64("qty");
                         let free_qty = inv_trn._get_f64("freeQty");
                         let unit_conv = inv_trn._get_f64("unitConv").unwrap();
+                        let gst_tax = GST_TAX_MAPPING
+                            .iter()
+                            .find_map(|x| {
+                                (*x.0 == d.get_string("tax").unwrap().as_str())
+                                    .then_some(("gst_tax".to_string(), x.1.to_string()).into())
+                            })
+                            .unwrap();
                         let mut nlc = None;
                         let (inward, outward) = {
                             match collection {
@@ -395,11 +411,7 @@ impl Voucher {
                                 unit_precision: inv_trn._get_f64("unitPrecision").unwrap() as u8,
                                 branch: branch.clone(),
                                 branch_name: branch_name.clone(),
-                                gst_tax: (
-                                    "gst_tax".to_string(),
-                                    inv_trn.get_string("tax").unwrap(),
-                                )
-                                    .into(),
+                                gst_tax,
                                 disc: inv_trn._get_document("disc"),
                                 act,
                                 act_hide,

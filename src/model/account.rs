@@ -1,6 +1,6 @@
 use super::{
     doc, Created, Database, Datetime, Doc, Document, HashSet, Serialize, StreamExt, Surreal,
-    SurrealClient, Thing,
+    SurrealClient, Thing, GST_TAX_MAPPING,
 };
 
 #[derive(Debug, Clone, Serialize)]
@@ -66,6 +66,12 @@ impl Account {
                 id = ("account".to_string(), default_acc.to_lowercase()).into();
                 is_default = Some(true);
             }
+            let mut gst_tax = None;
+            if let Some(ref tax) = d.get_string("tax") {
+                gst_tax = GST_TAX_MAPPING.iter().find_map(|x| {
+                    (*x.0 == tax).then_some(("gst_tax".to_string(), x.1.to_string()).into())
+                });
+            }
             let _created: Created = surrealdb
                 .create("account")
                 .content(Self {
@@ -82,9 +88,7 @@ impl Account {
                         d.get_string("accountType").unwrap().to_lowercase(),
                     )
                         .into(),
-                    gst_tax: d
-                        .get_string("tax")
-                        .map(|x| ("gst_tax".to_string(), x).into()),
+                    gst_tax,
                     gst_type: d.get_string("gstType"),
                     sac_code: d.get_string("sacCode"),
                     parent_account: d.get_oid_to_thing("parentAccount", "account"),

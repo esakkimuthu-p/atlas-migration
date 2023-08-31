@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use futures_util::StreamExt;
 use mongodb::{
@@ -75,6 +75,24 @@ pub use vendor_inventory_map::{VendorBillMap, VendorItemMap};
 pub use voucher::Voucher;
 pub use voucher_numbering::VoucherNumbering;
 pub use voucher_type::VoucherType;
+
+lazy_static::lazy_static! {
+    pub static ref GST_TAX_MAPPING: HashMap<&'static str, String>=HashMap::from([
+        ("gstna","not_applicable".to_string()),
+        ("gstexempt","exempt".to_string()),
+        ("gstngs","non_gst_supply".to_string()),
+        ("gst0","0".to_string()),
+        ("gst0p1","0_1".to_string()),
+        ("gst0p25","0_25".to_string()),
+        ("gst1p5","1_5".to_string()),
+        ("gst3","3".to_string()),
+        ("gst5","5".to_string()),
+        ("gst7p5","7_5".to_string()),
+        ("gst12","12".to_string()),
+        ("gst18","18".to_string()),
+        ("gst28","28".to_string()),
+    ]);
+}
 
 fn serialize_round_2<S: Serializer>(val: &f64, ser: S) -> Result<S::Ok, S::Error> {
     let x = (val * 10_f64.powi(2)).round() / 10_f64.powi(2);
