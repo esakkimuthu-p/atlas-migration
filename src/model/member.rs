@@ -83,7 +83,7 @@ impl Member {
                     perms: d.get_array_thing_from_str("permissions", "perm"),
                     date_rules: (!date_rules.is_empty()).then_some(date_rules),
                     user: d.get_object_id("user").ok().map(|x| x.to_hex()),
-                    settings: d.get_document("settings").unwrap().clone(),
+                    settings: d._get_document("settings").unwrap(),
                 })
                 .await
                 .unwrap()

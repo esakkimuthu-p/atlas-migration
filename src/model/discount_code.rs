@@ -45,9 +45,8 @@ impl DiscountCode {
                     bill_amount: d._get_f64("billAmount"),
                     expiry: d.get_surreal_datetime_from_str("expiry"),
                     discount: d
-                        .get_document("discount")
-                        .ok()
-                        .and_then(|x| from_document::<AmountInfo>(x.clone()).ok())
+                        ._get_document("discount")
+                        .and_then(|x| from_document::<AmountInfo>(x).ok())
                         .unwrap_or_default(),
                     created: d.get_surreal_datetime("createdAt").unwrap(),
                     updated: d.get_surreal_datetime("updatedAt").unwrap(),

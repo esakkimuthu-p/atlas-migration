@@ -1,6 +1,6 @@
 use super::{
-    doc, Created, Database, Datetime, Deserialize, Doc, Document, HashSet, Serialize, StreamExt,
-    Surreal, SurrealClient, Thing, GST_TAX_MAPPING,
+    doc, AmountInfo, Created, Database, Datetime, Deserialize, Doc, Document, HashSet, Serialize,
+    StreamExt, Surreal, SurrealClient, Thing, GST_TAX_MAPPING,
 };
 use futures_util::TryStreamExt;
 use mongodb::bson::from_document;
@@ -23,6 +23,31 @@ pub struct InventoryCess {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub on_quantity: Option<f64>,
 }
+
+#[derive(Debug, Serialize)]
+pub struct CustomerDiscount {
+    pub id: Thing,
+    pub disc: AmountInfo,
+}
+
+#[derive(Debug, Serialize)]
+pub struct InventoryBranchDetail {
+    pub branch: Thing,
+    pub inventory: Thing,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rack: Option<Thing>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub s_disc: Option<AmountInfo>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cost_margin: Option<AmountInfo>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mrp_margin: Option<AmountInfo>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_profit_margin: Option<AmountInfo>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub s_customer_disc: Option<Vec<CustomerDiscount>>,
+}
+
 #[derive(Debug, Serialize)]
 pub struct Inventory {
     pub id: Thing,
@@ -118,9 +143,8 @@ impl Inventory {
                 d.get_oid_to_thing("head", "inventory_head").unwrap()
             };
             let cess = d
-                .get_document("cess")
-                .ok()
-                .and_then(|x| from_document::<InventoryCess>(x.clone()).ok());
+                ._get_document("cess")
+                .and_then(|x| from_document::<InventoryCess>(x).ok());
             let mut units = Vec::new();
             for u_item in d.get_array_document("units").unwrap_or_default() {
                 let unit = InventoryUnit {
@@ -156,10 +180,11 @@ impl Inventory {
                         .then_some(("gst_tax".to_string(), x.1.to_string()).into())
                 })
                 .unwrap();
+            let id = d.get_oid_to_thing("_id", "inventory").unwrap();
             let _created: Created = surrealdb
                 .create("inventory")
                 .content(Self {
-                    id: d.get_oid_to_thing("_id", "inventory").unwrap(),
+                    id: id.clone(),
                     name: d.get_string("name").unwrap(),
                     val_name: d.get_string("validateName").unwrap(),
                     display_name: d.get_string("displayName").unwrap(),
@@ -192,6 +217,56 @@ impl Inventory {
                 .first()
                 .cloned()
                 .unwrap();
+            if let Some(branch_details) = d.get_array_document("branchDetails") {
+                for br_detail in branch_details {
+                    let s_disc = br_detail
+                        ._get_document("sDisc")
+                        .and_then(|x| from_document::<AmountInfo>(x).ok());
+                    let cost_margin = br_detail
+                        ._get_document("costMargin")
+                        .and_then(|x| from_document::<AmountInfo>(x).ok());
+                    let mrp_margin = br_detail
+                        ._get_document("mrpMargin")
+                        .and_then(|x| from_document::<AmountInfo>(x).ok());
+                    let min_profit_margin = br_detail
+                        ._get_document("minProfitMargin")
+                        .and_then(|x| from_document::<AmountInfo>(x).ok());
+                    let rack = br_detail
+                        ._get_document("rack")
+                        .and_then(|x| x.get_oid_to_thing("id", "rack"));
+                    let mut s_customer_disc: Vec<CustomerDiscount> = Vec::new();
+                    if let Some(c_s_disc) = br_detail.get_array_document("sCustomerDisc") {
+                        for c_disc in c_s_disc {
+                            let disc = CustomerDiscount {
+                                id: c_disc.get_oid_to_thing("id", "customer_group").unwrap(),
+                                disc: from_document::<AmountInfo>(
+                                    c_disc._get_document("disc").unwrap(),
+                                )
+                                .unwrap(),
+                            };
+                            s_customer_disc.push(disc);
+                        }
+                    }
+                    let _created: Created = surrealdb
+                        .create("inv_branch_detail")
+                        .content(InventoryBranchDetail {
+                            branch: br_detail.get_oid_to_thing("branch", "branch").unwrap(),
+                            inventory: id.clone(),
+                            rack,
+                            s_disc,
+                            cost_margin,
+                            mrp_margin,
+                            min_profit_margin,
+                            s_customer_disc: (!s_customer_disc.is_empty())
+                                .then_some(s_customer_disc),
+                        })
+                        .await
+                        .unwrap()
+                        .first()
+                        .cloned()
+                        .unwrap();
+                }
+            }
         }
         println!("inventory download end");
     }

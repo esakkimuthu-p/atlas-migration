@@ -175,8 +175,8 @@ impl Voucher {
             .await
             .unwrap();
         for collection in [
-            // "payments",
-            // "receipts",
+            "payments",
+            "receipts",
             "sales",
             "purchases",
             "credit_notes",
