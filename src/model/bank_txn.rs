@@ -1,7 +1,4 @@
-use super::{
-    doc, serialize_round_2, Created, Database, Datetime, Doc, Document, Serialize, StreamExt,
-    Surreal, SurrealClient, Thing,
-};
+use super::{doc, serialize_round_2, Datetime, Serialize, Thing};
 
 #[derive(Debug, Serialize)]
 pub struct BankTransaction {

@@ -129,6 +129,7 @@ impl InventoryOpening {
                             sgst_amount: None,
                             igst_amount: None,
                             nlc: Some(rate / unit_conv),
+                            sale_inc: None,
                         })
                         .await
                         .unwrap()
