@@ -30,14 +30,14 @@ impl InventoryOpening {
             .take::<Option<()>>(0)
             .unwrap();
         println!("inventory_opening INDEX end");
-        println!("inventory_opening download start");
+        println!("inventory_opening download and inventory_transaction start");
         let mut cur = mongodb
             .collection::<Document>("inventory_openings")
             .find(doc! {}, None)
             .await
             .unwrap();
         let inv_find_opts = FindOptions::builder()
-        .projection(doc! { "displayName": 1, "sectionId": 1, "sectionName": 1, "manufacturerId":1, "manufacturerName": 1, "tax": 1 })
+        .projection(doc! { "displayName": 1, "sectionId": 1, "sectionName": 1, "manufacturerId":1, "manufacturerName": 1 })
         .build();
         let inventories = mongodb
             .collection::<Document>("inventories")
@@ -99,11 +99,7 @@ impl InventoryOpening {
                             unit_precision: inv_trn._get_f64("unitPrecision").unwrap() as u8,
                             branch: branch.clone(),
                             branch_name: branch_doc.get_string("displayName").unwrap().clone(),
-                            gst_tax: (
-                                "gst_tax".to_string(),
-                                inventory_doc.get_string("tax").unwrap(),
-                            )
-                                .into(),
+                            gst_tax: None,
                             disc: None,
                             act,
                             act_hide,
@@ -139,6 +135,37 @@ impl InventoryOpening {
                 }
             }
         }
-        println!("inventory_opening download end");
+        println!("inventory_opening download and inventory_transaction end");
+        println!("account_transaction insert for inv_opening start");
+        let q = r#"
+            LET $openings = 
+                SELECT 
+                    branch, act, act_hide, 
+                    math::sum(asset_amount OR 0) as asset_amount,
+                    array::first(branch_name) as branch_name,
+                    array::first(date) as date
+                FROM inventory_transaction 
+                WHERE is_opening = true
+                GROUP BY branch, act, act_hide;
+    
+                INSERT INTO account_transaction {
+                    (SELECT 
+                        math::fixed(asset_amount, 2) as debit,
+                        0.0 as credit, branch, branch_name,
+                        acount:inventory_asset as account,
+                        account_type:stock as account_type,
+                        date,
+                        true as is_opening, 
+                        act, act_hide 
+                    FROM $openings)
+                }
+        "#;
+        surrealdb
+            .query(q)
+            .await
+            .unwrap()
+            .take::<Vec<Document>>(1)
+            .unwrap();
+        println!("account_transaction insert for inv_opening end");
     }
 }

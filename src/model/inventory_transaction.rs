@@ -12,7 +12,7 @@ pub struct InventoryTransaction {
     pub branch: Thing,
     pub branch_name: String,
     pub inventory: Thing,
-    pub gst_tax: Thing,
+    pub gst_tax: Option<Thing>,
     pub inventory_name: String,
     #[serde(serialize_with = "serialize_round_4")]
     pub inward: f64,

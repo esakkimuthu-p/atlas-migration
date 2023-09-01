@@ -452,7 +452,7 @@ impl Voucher {
                                 unit_precision: inv_trn._get_f64("unitPrecision").unwrap() as u8,
                                 branch: branch.clone(),
                                 branch_name: branch_name.clone(),
-                                gst_tax,
+                                gst_tax: Some(gst_tax),
                                 disc: inv_trn._get_document("disc"),
                                 act,
                                 act_hide,
