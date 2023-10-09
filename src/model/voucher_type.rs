@@ -8,18 +8,15 @@ pub struct VoucherType {
     pub id: Thing,
     pub name: String,
     pub display_name: String,
-    pub val_name: String,
     pub base_type: Thing,
     pub is_default: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub prefix: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub seq_id: Option<Thing>,
+    pub sequence: Option<Thing>,
     pub config: Document,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub members: Option<HashSet<Thing>>,
-    pub created: Datetime,
-    pub updated: Datetime,
 }
 
 impl VoucherType {
@@ -352,7 +349,6 @@ impl VoucherType {
                     id,
                     name: d.get_string("name").unwrap(),
                     display_name: d.get_string("displayName").unwrap(),
-                    val_name: d.get_string("validateName").unwrap(),
                     base_type: (
                         "voucher_type".to_string(),
                         d.get_string("voucherType").unwrap().to_lowercase(),
@@ -360,11 +356,9 @@ impl VoucherType {
                         .into(),
                     is_default: d.get_bool("default").unwrap_or_default(),
                     prefix: d.get_string("prefix"),
-                    seq_id: d.get_oid_to_thing("seqId", "voucher_type"),
+                    sequence: d.get_oid_to_thing("seqId", "voucher_type"),
                     config: configuration,
                     members: d.get_array_thing("members", "member"),
-                    created: d.get_surreal_datetime("createdAt").unwrap(),
-                    updated: d.get_surreal_datetime("updatedAt").unwrap(),
                 })
                 .await
                 .unwrap()

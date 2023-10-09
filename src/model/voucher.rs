@@ -1,28 +1,10 @@
 use super::{
     doc, serialize_opt_round_2, serialize_round_2, Created, Database, Datetime, Doc, Document,
-    Serialize, StreamExt, Surreal, SurrealClient, Thing, GST_TAX_MAPPING,
+    Serialize, StreamExt, Surreal, SurrealClient, Thing,
 };
 use crate::model::{AccountTransaction, BankTransaction, InventoryTransaction};
 use futures_util::TryStreamExt;
 use mongodb::options::FindOptions;
-
-#[derive(Debug, Serialize)]
-pub struct TaxSummary {
-    pub gst_tax: Thing,
-    #[serde(serialize_with = "serialize_round_2")]
-    pub taxable_amount: f64,
-    #[serde(serialize_with = "serialize_round_2")]
-    pub igst_amount: f64,
-    #[serde(serialize_with = "serialize_round_2")]
-    pub cgst_amount: f64,
-    #[serde(serialize_with = "serialize_round_2")]
-    pub sgst_amount: f64,
-    #[serde(
-        skip_serializing_if = "Option::is_none",
-        serialize_with = "serialize_opt_round_2"
-    )]
-    pub cess_amount: Option<f64>,
-}
 
 #[derive(Debug, Serialize)]
 pub struct Voucher {
@@ -39,8 +21,7 @@ pub struct Voucher {
     pub contact: Option<Thing>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub contact_name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub mode: Option<String>,
+    pub mode: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub ref_no: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -49,8 +30,6 @@ pub struct Voucher {
     pub amount: f64,
     pub created: Datetime,
     pub updated: Datetime,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub tax_summary: Option<Vec<TaxSummary>>,
 }
 
 fn get_alt_accounts(
@@ -247,26 +226,6 @@ impl Voucher {
                         )
                     })
                     .unwrap_or(d.get_oid_to_thing("voucherTypeId", "voucher_type").unwrap());
-                let mut tax_summary = Vec::new();
-                if let Some(tax_sums) = d.get_array_document("taxSummary") {
-                    for tax_sum in tax_sums {
-                        let gst_tax = GST_TAX_MAPPING
-                            .iter()
-                            .find_map(|x| {
-                                (*x.0 == tax_sum.get_string("tax").unwrap().as_str())
-                                    .then_some(("gst_tax".to_string(), x.1.to_string()).into())
-                            })
-                            .unwrap();
-                        tax_summary.push(TaxSummary {
-                            gst_tax,
-                            taxable_amount: tax_sum._get_f64("taxableAmount").unwrap_or_default(),
-                            igst_amount: tax_sum._get_f64("igstAmount").unwrap_or_default(),
-                            cgst_amount: tax_sum._get_f64("cgstAmount").unwrap_or_default(),
-                            sgst_amount: tax_sum._get_f64("sgstAmount").unwrap_or_default(),
-                            cess_amount: tax_sum._get_f64("cessAmount"),
-                        });
-                    }
-                }
                 let _created: Created = surrealdb
                     .create("voucher")
                     .content(Self {
@@ -281,13 +240,12 @@ impl Voucher {
                         base_voucher_type: base_voucher_type.clone(),
                         act,
                         act_hide,
-                        mode: mode.clone(),
+                        mode: mode.clone().unwrap_or("ACC".to_string()),
                         voucher_no,
                         description: d.get_string("description"),
                         amount: d._get_f64("amount").unwrap_or_default(),
                         created: d.get_surreal_datetime("createdAt").unwrap(),
                         updated: d.get_surreal_datetime("updatedAt").unwrap(),
-                        tax_summary: (!tax_summary.is_empty()).then_some(tax_summary),
                     })
                     .await
                     .unwrap()
@@ -297,15 +255,9 @@ impl Voucher {
                 if let Some(ac_trns) = d.get_array_document("acTrns") {
                     let (cr_alt, dr_alt) = get_alt_accounts(&ac_trns, &accounts);
                     for ac_trn in ac_trns {
+                        let id = ac_trn.get_oid_to_thing("_id", "ac_txn").unwrap();
                         let credit = ac_trn._get_f64("credit").unwrap();
                         let account_type = ac_trn.get_string("accountType").unwrap().to_lowercase();
-                        let mut gst_tax = None;
-                        if let Some(ref tax) = ac_trn.get_string("tax") {
-                            gst_tax = GST_TAX_MAPPING.iter().find_map(|x| {
-                                (*x.0 == tax)
-                                    .then_some(("gst_tax".to_string(), x.1.to_string()).into())
-                            });
-                        }
                         let alt_account = if credit > 0.0 {
                             cr_alt.clone()
                         } else {
@@ -351,6 +303,7 @@ impl Voucher {
                                     credit: ac_trn._get_f64("credit").unwrap_or_default(),
                                     account: account.clone(),
                                     account_name: account_name.clone(),
+                                    txn: id.clone(),
                                     account_type: (
                                         "account_type".to_string(),
                                         account_type.clone(),
@@ -373,8 +326,9 @@ impl Voucher {
                                 .unwrap();
                         }
                         let _created: Created = surrealdb
-                            .create("account_transaction")
+                            .create("ac_txn")
                             .content(AccountTransaction {
+                                id: id.clone(),
                                 date: date.clone(),
                                 debit: ac_trn._get_f64("debit").unwrap(),
                                 credit,
@@ -392,7 +346,7 @@ impl Voucher {
                                 voucher: Some(id.clone()),
                                 is_opening: None,
                                 is_default: ac_trn.get_bool("isDefault").ok(),
-                                gst_tax,
+                                gst_tax: ac_trn.get_string("tax"),
                                 voucher_mode: mode.clone(),
                             })
                             .await
@@ -407,13 +361,6 @@ impl Voucher {
                         let qty = inv_trn._get_f64("qty");
                         let free_qty = inv_trn._get_f64("freeQty");
                         let unit_conv = inv_trn._get_f64("unitConv").unwrap();
-                        let gst_tax = GST_TAX_MAPPING
-                            .iter()
-                            .find_map(|x| {
-                                (*x.0 == inv_trn.get_string("tax").unwrap().as_str())
-                                    .then_some(("gst_tax".to_string(), x.1.to_string()).into())
-                            })
-                            .unwrap();
                         let mut nlc = None;
                         let (inward, outward) = {
                             match collection {
@@ -441,7 +388,7 @@ impl Voucher {
                             })
                             .unwrap();
                         let _created: Created = surrealdb
-                            .create("inventory_transaction")
+                            .create("inv_txn")
                             .content(InventoryTransaction {
                                 date: date.clone(),
                                 inward,
@@ -452,7 +399,7 @@ impl Voucher {
                                 unit_precision: inv_trn._get_f64("unitPrecision").unwrap() as u8,
                                 branch: branch.clone(),
                                 branch_name: branch_name.clone(),
-                                gst_tax: Some(gst_tax),
+                                gst_tax: inv_trn.get_string("tax"),
                                 disc: inv_trn._get_document("disc"),
                                 act,
                                 act_hide,

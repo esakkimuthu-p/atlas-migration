@@ -116,6 +116,7 @@ impl AccountOpening {
                     .create("bank_txn")
                     .content(BankTransaction {
                         date: Datetime::default(), // org book begin date
+                        txn: 
                         debit: d._get_f64("debit").unwrap_or_default(),
                         credit: d._get_f64("credit").unwrap_or_default(),
                         account: account.clone(),

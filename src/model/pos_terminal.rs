@@ -109,7 +109,7 @@ pub struct PosTerminal {
     pub branch: Thing,
     pub members: HashSet<Thing>,
     pub mode: String,
-    pub config: PosConfiguration,
+    // pub config: PosConfiguration,
     pub is_active: bool,
 }
 
@@ -130,131 +130,131 @@ impl PosTerminal {
             .await
             .unwrap();
         while let Some(Ok(d)) = cur.next().await {
-            let mut sale: Option<PosSaleConfig> = None;
-            let mut credit_note: Option<PosCreditNoteConfig> = None;
-            let mut payment: Option<PosPaymentConfig> = None;
-            let mut receipt: Option<PosReceiptConfig> = None;
-            let mut contra: Option<PosContraConfig> = None;
-            let mut settlement: Option<PosSettlementConfig> = None;
-            let mut general: Option<PosGeneralConfig> = None;
-            let mut allowed_voucher_types = HashSet::new();
-            if let Some(config_doc) = d._get_document("configuration") {
-                for (key, bs) in config_doc
-                    .iter()
-                    .map(|x| (x.0, x.1.as_document().unwrap_or(&doc! {}).clone()))
-                {
-                    match key.as_str() {
-                        "sale" => {
-                            sale = Some(PosSaleConfig {
-                                voucher_type: (
-                                    "voucher_type".to_string(),
-                                    bs.get_string("voucherType").unwrap(),
-                                )
-                                    .into(),
-                                rate_editable: bs.get_bool("rateEditable").unwrap_or_default(),
-                                discount_editable: bs
-                                    .get_bool("discountEditable")
-                                    .unwrap_or_default(),
-                                unit_editable: bs.get_bool("unitEditable").unwrap_or_default(),
-                                auto_select_batch: bs
-                                    .get_bool("autoSelectBatch")
-                                    .unwrap_or_default(),
-                                set_default_qty: bs.get_bool("setDefaultQty").unwrap_or_default(),
-                                barcode_enabled: bs.get_bool("barcodeEnabled").unwrap_or_default(),
-                                cash_tender_enabled: bs
-                                    .get_bool("cashTenderEnabled")
-                                    .unwrap_or_default(),
-                                max_voucher_amount: bs._get_f64("maxVoucherAmount"),
-                                print_template: bs
-                                    .get_string("printTemplate")
-                                    .map(|x| ("print_template".to_string(), x).into()),
-                            })
-                        }
-                        "creditNote" => {
-                            credit_note = Some(PosCreditNoteConfig {
-                                voucher_type: (
-                                    "voucher_type".to_string(),
-                                    bs.get_string("voucherType").unwrap(),
-                                )
-                                    .into(),
-                                rate_editable: bs.get_bool("rateEditable").unwrap_or_default(),
-                                discount_editable: bs
-                                    .get_bool("discountEditable")
-                                    .unwrap_or_default(),
-                                unit_editable: bs.get_bool("unitEditable").unwrap_or_default(),
-                                auto_select_batch: bs
-                                    .get_bool("autoSelectBatch")
-                                    .unwrap_or_default(),
-                                set_default_qty: bs.get_bool("setDefaultQty").unwrap_or_default(),
-                                barcode_enabled: bs.get_bool("barcodeEnabled").unwrap_or_default(),
-                                max_voucher_amount: bs._get_f64("maxVoucherAmount"),
-                                print_template: bs
-                                    .get_string("printTemplate")
-                                    .map(|x| ("print_template".to_string(), x).into()),
-                            })
-                        }
-                        "payment" => {
-                            payment = Some(PosPaymentConfig {
-                                voucher_type: (
-                                    "voucher_type".to_string(),
-                                    bs.get_string("voucherType").unwrap(),
-                                )
-                                    .into(),
-                                expense_only: bs.get_bool("expenseOnly").unwrap_or_default(),
-                            })
-                        }
-                        "receipt" => {
-                            receipt = Some(PosReceiptConfig {
-                                voucher_type: (
-                                    "voucher_type".to_string(),
-                                    bs.get_string("voucherType").unwrap(),
-                                )
-                                    .into(),
-                                income_only: bs.get_bool("incomeOnly").unwrap_or_default(),
-                            })
-                        }
-                        "contra" => {
-                            contra = Some(PosContraConfig {
-                                voucher_type: (
-                                    "voucher_type".to_string(),
-                                    bs.get_string("voucherType").unwrap(),
-                                )
-                                    .into(),
-                            })
-                        }
-                        "settlement" => {
-                            settlement = Some(PosSettlementConfig {
-                                print_template: bs
-                                    .get_string("printTemplate")
-                                    .map(|x| ("print_template".to_string(), x).into()),
-                                max_denomination_difference: bs
-                                    ._get_f64("maxDenominationDifference"),
-                            })
-                        }
-                        "allowedVoucherypes" => {
-                            allowed_voucher_types = config_doc
-                                .get_array_thing_from_str("allowedVoucherypes", "voucher_type")
-                                .unwrap_or_default()
-                        }
-                        "general" => {
-                            general = Some(PosGeneralConfig {
-                                offline_only: bs.get_bool("offlineOnly").unwrap_or_default(),
-                            })
-                        }
-                        _ => (),
-                    }
-                }
-            }
-            let config = PosConfiguration {
-                allowed_voucher_types,
-                sale,
-                credit_note,
-                contra,
-                payment,
-                receipt,
-                settlement,
-                general,
-            };
+            // let mut sale: Option<PosSaleConfig> = None;
+            // let mut credit_note: Option<PosCreditNoteConfig> = None;
+            // let mut payment: Option<PosPaymentConfig> = None;
+            // let mut receipt: Option<PosReceiptConfig> = None;
+            // let mut contra: Option<PosContraConfig> = None;
+            // let mut settlement: Option<PosSettlementConfig> = None;
+            // let mut general: Option<PosGeneralConfig> = None;
+            // let mut allowed_voucher_types = HashSet::new();
+            // if let Some(config_doc) = d._get_document("configuration") {
+            //     for (key, bs) in config_doc
+            //         .iter()
+            //         .map(|x| (x.0, x.1.as_document().unwrap_or(&doc! {}).clone()))
+            //     {
+            //         match key.as_str() {
+            //             "sale" => {
+            //                 sale = Some(PosSaleConfig {
+            //                     voucher_type: (
+            //                         "voucher_type".to_string(),
+            //                         bs.get_string("voucherType").unwrap(),
+            //                     )
+            //                         .into(),
+            //                     rate_editable: bs.get_bool("rateEditable").unwrap_or_default(),
+            //                     discount_editable: bs
+            //                         .get_bool("discountEditable")
+            //                         .unwrap_or_default(),
+            //                     unit_editable: bs.get_bool("unitEditable").unwrap_or_default(),
+            //                     auto_select_batch: bs
+            //                         .get_bool("autoSelectBatch")
+            //                         .unwrap_or_default(),
+            //                     set_default_qty: bs.get_bool("setDefaultQty").unwrap_or_default(),
+            //                     barcode_enabled: bs.get_bool("barcodeEnabled").unwrap_or_default(),
+            //                     cash_tender_enabled: bs
+            //                         .get_bool("cashTenderEnabled")
+            //                         .unwrap_or_default(),
+            //                     max_voucher_amount: bs._get_f64("maxVoucherAmount"),
+            //                     print_template: bs
+            //                         .get_string("printTemplate")
+            //                         .map(|x| ("print_template".to_string(), x).into()),
+            //                 })
+            //             }
+            //             "creditNote" => {
+            //                 credit_note = Some(PosCreditNoteConfig {
+            //                     voucher_type: (
+            //                         "voucher_type".to_string(),
+            //                         bs.get_string("voucherType").unwrap(),
+            //                     )
+            //                         .into(),
+            //                     rate_editable: bs.get_bool("rateEditable").unwrap_or_default(),
+            //                     discount_editable: bs
+            //                         .get_bool("discountEditable")
+            //                         .unwrap_or_default(),
+            //                     unit_editable: bs.get_bool("unitEditable").unwrap_or_default(),
+            //                     auto_select_batch: bs
+            //                         .get_bool("autoSelectBatch")
+            //                         .unwrap_or_default(),
+            //                     set_default_qty: bs.get_bool("setDefaultQty").unwrap_or_default(),
+            //                     barcode_enabled: bs.get_bool("barcodeEnabled").unwrap_or_default(),
+            //                     max_voucher_amount: bs._get_f64("maxVoucherAmount"),
+            //                     print_template: bs
+            //                         .get_string("printTemplate")
+            //                         .map(|x| ("print_template".to_string(), x).into()),
+            //                 })
+            //             }
+            //             "payment" => {
+            //                 payment = Some(PosPaymentConfig {
+            //                     voucher_type: (
+            //                         "voucher_type".to_string(),
+            //                         bs.get_string("voucherType").unwrap(),
+            //                     )
+            //                         .into(),
+            //                     expense_only: bs.get_bool("expenseOnly").unwrap_or_default(),
+            //                 })
+            //             }
+            //             "receipt" => {
+            //                 receipt = Some(PosReceiptConfig {
+            //                     voucher_type: (
+            //                         "voucher_type".to_string(),
+            //                         bs.get_string("voucherType").unwrap(),
+            //                     )
+            //                         .into(),
+            //                     income_only: bs.get_bool("incomeOnly").unwrap_or_default(),
+            //                 })
+            //             }
+            //             "contra" => {
+            //                 contra = Some(PosContraConfig {
+            //                     voucher_type: (
+            //                         "voucher_type".to_string(),
+            //                         bs.get_string("voucherType").unwrap(),
+            //                     )
+            //                         .into(),
+            //                 })
+            //             }
+            //             "settlement" => {
+            //                 settlement = Some(PosSettlementConfig {
+            //                     print_template: bs
+            //                         .get_string("printTemplate")
+            //                         .map(|x| ("print_template".to_string(), x).into()),
+            //                     max_denomination_difference: bs
+            //                         ._get_f64("maxDenominationDifference"),
+            //                 })
+            //             }
+            //             "allowedVoucherypes" => {
+            //                 allowed_voucher_types = config_doc
+            //                     .get_array_thing_from_str("allowedVoucherypes", "voucher_type")
+            //                     .unwrap_or_default()
+            //             }
+            //             "general" => {
+            //                 general = Some(PosGeneralConfig {
+            //                     offline_only: bs.get_bool("offlineOnly").unwrap_or_default(),
+            //                 })
+            //             }
+            //             _ => (),
+            //         }
+            //     }
+            // }
+            // let config = PosConfiguration {
+            //     allowed_voucher_types,
+            //     sale,
+            //     credit_note,
+            //     contra,
+            //     payment,
+            //     receipt,
+            //     settlement,
+            //     general,
+            // };
             let _created: Created = surrealdb
                 .create("pos_terminal")
                 .content(Self {
@@ -265,7 +265,6 @@ impl PosTerminal {
                     branch: d.get_oid_to_thing("branch", "branch").unwrap(),
                     members: d.get_array_thing("members", "member").unwrap_or_default(),
                     mode: d.get_string("mode").unwrap(),
-                    config,
                     is_active: d.get_bool("isActive").unwrap_or_default(),
                 })
                 .await

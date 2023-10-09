@@ -7,11 +7,8 @@ pub struct Doctor {
     pub id: Thing,
     pub name: String,
     pub display_name: String,
-    pub val_name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub license_no: Option<String>,
-    pub created: Datetime,
-    pub updated: Datetime,
 }
 
 impl Doctor {
@@ -36,11 +33,8 @@ impl Doctor {
                 .content(Self {
                     id: d.get_oid_to_thing("_id", "doctor").unwrap(),
                     name: d.get_string("name").unwrap(),
-                    val_name: d.get_string("validateName").unwrap(),
                     display_name: d.get_string("displayName").unwrap(),
                     license_no: d.get_string("licenseNo"),
-                    created: d.get_surreal_datetime("createdAt").unwrap(),
-                    updated: d.get_surreal_datetime("updatedAt").unwrap(),
                 })
                 .await
                 .unwrap()

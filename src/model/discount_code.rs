@@ -13,10 +13,8 @@ pub struct DiscountCode {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub bill_amount: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub expiry: Option<Datetime>,
+    pub expiry: Option<String>,
     pub discount: AmountInfo,
-    pub created: Datetime,
-    pub updated: Datetime,
 }
 
 impl DiscountCode {
@@ -43,13 +41,11 @@ impl DiscountCode {
                     code: d.get_string("code").unwrap(),
                     discount_type: d.get_string("discountType").unwrap(),
                     bill_amount: d._get_f64("billAmount"),
-                    expiry: d.get_surreal_datetime_from_str("expiry"),
+                    expiry: d.get_string("expiry"),
                     discount: d
                         ._get_document("discount")
                         .and_then(|x| from_document::<AmountInfo>(x).ok())
                         .unwrap_or_default(),
-                    created: d.get_surreal_datetime("createdAt").unwrap(),
-                    updated: d.get_surreal_datetime("updatedAt").unwrap(),
                 })
                 .await
                 .unwrap()

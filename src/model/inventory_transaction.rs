@@ -1,6 +1,6 @@
 use super::{
-    doc, serialize_opt_round_2, serialize_opt_round_4, serialize_round_2, serialize_round_4,
-    Datetime, Document, Serialize, Thing,
+    doc, serialize_opt_round_2, serialize_opt_round_4, serialize_opt_tax_as_thing,
+    serialize_round_2, serialize_round_4, Datetime, Document, Serialize, Thing,
 };
 
 #[derive(Debug, Serialize)]
@@ -12,7 +12,11 @@ pub struct InventoryTransaction {
     pub branch: Thing,
     pub branch_name: String,
     pub inventory: Thing,
-    pub gst_tax: Option<Thing>,
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "serialize_opt_tax_as_thing"
+    )]
+    pub gst_tax: Option<String>,
     pub inventory_name: String,
     #[serde(serialize_with = "serialize_round_4")]
     pub inward: f64,

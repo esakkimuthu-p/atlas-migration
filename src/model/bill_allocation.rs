@@ -14,7 +14,7 @@ pub struct BillAllocation {
     pub eff_date: Datetime,
     #[serde(serialize_with = "serialize_round_2")]
     pub amount: f64,
-    pub txn_id: Thing,
+    pub txn: Thing,
     pub pending: Thing,
     pub ref_type: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -55,7 +55,7 @@ impl BillAllocation {
                         .get_surreal_datetime_from_str("effDate")
                         .unwrap_or(d.get_surreal_datetime_from_str("date").unwrap()),
                     amount: d._get_f64("amount").unwrap_or_default(),
-                    txn_id: d.get_oid_to_thing("txnId", "txn_id").unwrap(),
+                    txn: d.get_oid_to_thing("txnId", "txn_id").unwrap(),
                     pending: d.get_oid_to_thing("pending", "pending").unwrap(),
                     ref_type: d.get_string("refType").unwrap(),
                     voucher: d.get_oid_to_thing("voucherId", "voucher"),

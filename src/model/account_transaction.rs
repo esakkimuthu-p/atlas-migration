@@ -1,7 +1,8 @@
-use super::{doc, serialize_round_2, Datetime, Serialize, Thing};
+use super::{doc, serialize_opt_tax_as_thing, serialize_round_2, Datetime, Serialize, Thing};
 
 #[derive(Debug, Serialize)]
 pub struct AccountTransaction {
+    pub id: Thing,
     pub date: Datetime,
     pub account: Thing,
     pub account_name: String,
@@ -24,8 +25,11 @@ pub struct AccountTransaction {
     pub ref_no: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub is_default: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub gst_tax: Option<Thing>,
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "serialize_opt_tax_as_thing"
+    )]
+    pub gst_tax: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub voucher: Option<Thing>,
     #[serde(skip_serializing_if = "Option::is_none")]

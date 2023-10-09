@@ -7,15 +7,12 @@ pub struct Manufacturer {
     pub id: Thing,
     pub name: String,
     pub display_name: String,
-    pub val_name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mobile: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub telephone: Option<String>,
-    pub created: Datetime,
-    pub updated: Datetime,
 }
 
 impl Manufacturer {
@@ -40,10 +37,7 @@ impl Manufacturer {
                 .content(Self {
                     id: d.get_oid_to_thing("_id", "manufacturer").unwrap(),
                     name: d.get_string("name").unwrap(),
-                    val_name: d.get_string("validateName").unwrap(),
                     display_name: d.get_string("displayName").unwrap(),
-                    created: d.get_surreal_datetime("createdAt").unwrap(),
-                    updated: d.get_surreal_datetime("updatedAt").unwrap(),
                     email: d.get_string("email"),
                     mobile: d.get_string("mobile"),
                     telephone: d.get_string("telephone"),

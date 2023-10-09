@@ -7,9 +7,6 @@ pub struct PharmaSalt {
     pub id: Thing,
     pub name: String,
     pub display_name: String,
-    pub val_name: String,
-    pub created: Datetime,
-    pub updated: Datetime,
 }
 
 impl PharmaSalt {
@@ -34,10 +31,7 @@ impl PharmaSalt {
                 .content(Self {
                     id: d.get_oid_to_thing("_id", "pharma_salt").unwrap(),
                     name: d.get_string("name").unwrap(),
-                    val_name: d.get_string("validateName").unwrap(),
                     display_name: d.get_string("displayName").unwrap(),
-                    created: d.get_surreal_datetime("createdAt").unwrap(),
-                    updated: d.get_surreal_datetime("updatedAt").unwrap(),
                 })
                 .await
                 .unwrap()

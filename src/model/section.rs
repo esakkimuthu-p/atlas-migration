@@ -2,19 +2,15 @@ use super::{
     doc, Created, Database, Datetime, Doc, Document, HashSet, Serialize, StreamExt, Surreal,
     SurrealClient, Thing,
 };
+use mongodb::options::FindOptions;
 
 #[derive(Debug, Serialize)]
 pub struct Section {
     pub id: Thing,
     pub name: String,
     pub display_name: String,
-    pub val_name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub parent: Option<Thing>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub parents: Option<HashSet<Thing>>,
-    pub created: Datetime,
-    pub updated: Datetime,
 }
 
 impl Section {
@@ -28,9 +24,10 @@ impl Section {
             .unwrap();
         println!("section INDEX end");
         println!("section download start");
+        let find_opts = FindOptions::builder().sort(doc! {"_id": 1}).build();
         let mut cur = mongodb
             .collection::<Document>("sections")
-            .find(doc! {}, None)
+            .find(doc! {}, find_opts)
             .await
             .unwrap();
         while let Some(Ok(d)) = cur.next().await {
@@ -39,12 +36,8 @@ impl Section {
                 .content(Self {
                     id: d.get_oid_to_thing("_id", "section").unwrap(),
                     name: d.get_string("name").unwrap(),
-                    val_name: d.get_string("validateName").unwrap(),
                     display_name: d.get_string("displayName").unwrap(),
                     parent: d.get_oid_to_thing("parentSection", "section"),
-                    parents: d.get_array_thing("parents", "section"),
-                    created: d.get_surreal_datetime("createdAt").unwrap(),
-                    updated: d.get_surreal_datetime("updatedAt").unwrap(),
                 })
                 .await
                 .unwrap()

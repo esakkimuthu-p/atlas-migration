@@ -7,7 +7,6 @@ pub struct TdsNatureOfPayment {
     pub id: Thing,
     pub name: String,
     pub display_name: String,
-    pub val_name: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub section: Option<String>,
     pub ind_huf_rate: f64,
@@ -15,8 +14,6 @@ pub struct TdsNatureOfPayment {
     pub other_deductee_rate: f64,
     pub other_deductee_rate_wo_pan: f64,
     pub threshold: f64,
-    pub created: Datetime,
-    pub updated: Datetime,
 }
 
 impl TdsNatureOfPayment {
@@ -42,10 +39,7 @@ impl TdsNatureOfPayment {
                     id: d.get_oid_to_thing("_id", "tds_nature_of_payment").unwrap(),
                     name: d.get_string("name").unwrap(),
                     section: d.get_string("section"),
-                    created: d.get_surreal_datetime("createdAt").unwrap(),
-                    updated: d.get_surreal_datetime("updatedAt").unwrap(),
                     display_name: d.get_string("displayName").unwrap(),
-                    val_name: d.get_string("validateName").unwrap(),
                     ind_huf_rate: d._get_f64("indHufRate").unwrap_or_default(),
                     ind_huf_rate_wo_pan: d._get_f64("indHufRateWoPan").unwrap_or_default(),
                     other_deductee_rate: d._get_f64("otherDeducteeRate").unwrap_or_default(),

@@ -7,11 +7,8 @@ pub struct Unit {
     pub id: Thing,
     pub name: String,
     pub display_name: String,
-    pub val_name: String,
     pub uqc: Thing,
     pub symbol: String,
-    pub created: Datetime,
-    pub updated: Datetime,
 }
 
 impl Unit {
@@ -36,7 +33,6 @@ impl Unit {
                 .content(Self {
                     id: d.get_oid_to_thing("_id", "unit").unwrap(),
                     name: d.get_string("name").unwrap(),
-                    val_name: d.get_string("validateName").unwrap(),
                     display_name: d.get_string("displayName").unwrap(),
                     symbol: d.get_string("symbol").unwrap(),
                     uqc: (
@@ -44,8 +40,6 @@ impl Unit {
                         d.get_string("uqc").unwrap().to_lowercase(),
                     )
                         .into(),
-                    created: d.get_surreal_datetime("createdAt").unwrap(),
-                    updated: d.get_surreal_datetime("updatedAt").unwrap(),
                 })
                 .await
                 .unwrap()

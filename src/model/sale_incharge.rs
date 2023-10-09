@@ -6,10 +6,7 @@ use super::{
 pub struct SaleIncharge {
     pub id: Thing,
     pub name: String,
-    pub val_name: String,
     pub code: String,
-    pub created: Datetime,
-    pub updated: Datetime,
 }
 
 impl SaleIncharge {
@@ -40,10 +37,7 @@ impl SaleIncharge {
                 .content(Self {
                     id: d.get_oid_to_thing("_id", "sale_incharge").unwrap(),
                     name: d.get_string("name").unwrap(),
-                    val_name: d.get_string("validateName").unwrap(),
                     code: d.get_string("code").unwrap(),
-                    created: d.get_surreal_datetime("createdAt").unwrap(),
-                    updated: d.get_surreal_datetime("updatedAt").unwrap(),
                 })
                 .await
                 .unwrap()

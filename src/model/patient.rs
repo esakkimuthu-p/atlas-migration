@@ -8,10 +8,7 @@ pub struct Patient {
     pub id: Thing,
     pub name: String,
     pub display_name: String,
-    pub val_name: String,
     pub customer: Thing,
-    pub created: Datetime,
-    pub updated: Datetime,
 }
 
 impl Patient {
@@ -42,11 +39,8 @@ impl Patient {
                 .content(Self {
                     id: d.get_oid_to_thing("_id", "patient").unwrap(),
                     name: d.get_string("name").unwrap(),
-                    val_name: d.get_string("validateName").unwrap(),
                     display_name: d.get_string("displayName").unwrap(),
                     customer: d.get_oid_to_thing("customer", "contact").unwrap(),
-                    created: d.get_surreal_datetime("createdAt").unwrap(),
-                    updated: d.get_surreal_datetime("updatedAt").unwrap(),
                 })
                 .await
                 .unwrap()

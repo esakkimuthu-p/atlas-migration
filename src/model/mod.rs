@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet};
+use std::str::FromStr;
 
 use futures_util::StreamExt;
 use mongodb::{
@@ -6,10 +7,15 @@ use mongodb::{
     Database,
 };
 use serde::{Deserialize, Serialize, Serializer};
-use surrealdb::{engine::remote::ws::Client as SurrealClient, sql::Datetime, sql::Thing, Surreal};
+use surrealdb::{
+    engine::remote::ws::Client as SurrealClient,
+    sql::Datetime,
+    sql::{Id, Thing},
+    Surreal,
+};
 
 mod account;
-mod account_opening;
+// mod account_opening;
 mod account_transaction;
 mod bank_txn;
 mod batch;
@@ -43,7 +49,7 @@ mod voucher_numbering;
 mod voucher_type;
 
 pub use account::Account;
-pub use account_opening::AccountOpening;
+// pub use account_opening::AccountOpening;
 pub use account_transaction::AccountTransaction;
 pub use bank_txn::BankTransaction;
 pub use batch::Batch;
@@ -76,22 +82,54 @@ pub use voucher::Voucher;
 pub use voucher_numbering::VoucherNumbering;
 pub use voucher_type::VoucherType;
 
-lazy_static::lazy_static! {
-    pub static ref GST_TAX_MAPPING: HashMap<&'static str, String>=HashMap::from([
-        ("gstna","not_applicable".to_string()),
-        ("gstexempt","exempt".to_string()),
-        ("gstngs","non_gst_supply".to_string()),
-        ("gst0","0".to_string()),
-        ("gst0p1","0_1".to_string()),
-        ("gst0p25","0_25".to_string()),
-        ("gst1p5","1_5".to_string()),
-        ("gst3","3".to_string()),
-        ("gst5","5".to_string()),
-        ("gst7p5","7_5".to_string()),
-        ("gst12","12".to_string()),
-        ("gst18","18".to_string()),
-        ("gst28","28".to_string()),
-    ]);
+fn serialize_opt_tax_as_thing<S: Serializer>(
+    val: &Option<String>,
+    ser: S,
+) -> Result<S::Ok, S::Error> {
+    match val {
+        Some(tax_name) => {
+            let tax_id = match tax_name.as_str() {
+                "gstna" => "gst_tax:not_applicable",
+                "gstexempt" => "gst_tax:exempt",
+                "gstngs" => "gst_tax:non_gst_supply",
+                "gst0" => "gst_tax:0",
+                "gst0p1" => "gst_tax:0_1",
+                "gst0p25" => "gst_tax:0_25",
+                "gst1" => "gst_tax:1",
+                "gst1p5" => "gst_tax:1_5",
+                "gst3" => "gst_tax:3",
+                "gst5" => "gst_tax:5",
+                "gst7p5" => "gst_tax:7_5",
+                "gst12" => "gst_tax:12",
+                "gst18" => "gst_tax:18",
+                "gst28" => "gst_tax:28",
+                _ => unreachable!(),
+            };
+            Thing::from_str(tax_id).unwrap().serialize(ser)
+        }
+        _ => unreachable!(),
+    }
+}
+
+fn serialize_tax_as_thing<S: Serializer>(val: &String, ser: S) -> Result<S::Ok, S::Error> {
+    let tax_id = match val.as_str() {
+        "gstna" => "gst_tax:not_applicable",
+        "gstexempt" => "gst_tax:exempt",
+        "gstngs" => "gst_tax:non_gst_supply",
+        "gst0" => "gst_tax:0",
+        "gst0p1" => "gst_tax:0_1",
+        "gst0p25" => "gst_tax:0_25",
+        "gst1" => "gst_tax:1",
+        "gst1p5" => "gst_tax:1_5",
+        "gst3" => "gst_tax:3",
+        "gst5" => "gst_tax:5",
+        "gst7p5" => "gst_tax:7_5",
+        "gst12" => "gst_tax:12",
+        "gst18" => "gst_tax:18",
+        "gst28" => "gst_tax:28",
+        _ => unreachable!(),
+    };
+    Thing::from_str(tax_id).unwrap().serialize(ser)
 }
 
 fn serialize_round_2<S: Serializer>(val: &f64, ser: S) -> Result<S::Ok, S::Error> {
@@ -166,6 +204,22 @@ pub struct ContactInfo {
     pub telephone: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub contact_person: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AddressInfo {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mobile: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub address: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub city: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pincode: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub state: Option<Thing>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub country: Option<Thing>,
 }
 
 pub trait Doc {

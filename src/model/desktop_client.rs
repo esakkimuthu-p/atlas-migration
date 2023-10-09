@@ -7,12 +7,9 @@ pub struct DesktopClient {
     pub id: Thing,
     pub name: String,
     pub display_name: String,
-    pub val_name: String,
     pub access: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub branches: Option<HashSet<Thing>>,
-    pub created: Datetime,
-    pub updated: Datetime,
 }
 
 impl DesktopClient {
@@ -37,12 +34,9 @@ impl DesktopClient {
                 .content(Self {
                     id: d.get_oid_to_thing("_id", "desktop_client").unwrap(),
                     name: d.get_string("name").unwrap(),
-                    val_name: d.get_string("validateName").unwrap(),
                     display_name: d.get_string("displayName").unwrap(),
                     branches: d.get_array_thing("branches", "branch"),
                     access: d.get_bool("access").unwrap_or_default(),
-                    created: d.get_surreal_datetime("createdAt").unwrap(),
-                    updated: d.get_surreal_datetime("updatedAt").unwrap(),
                 })
                 .await
                 .unwrap()

@@ -10,8 +10,6 @@ pub struct PrintTemplate {
     pub layout: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub voucher_mode: Option<String>,
-    pub created: Datetime,
-    pub updated: Datetime,
 }
 
 impl PrintTemplate {
@@ -39,8 +37,6 @@ impl PrintTemplate {
                     voucher_mode: d.get_string("voucherMode"),
                     layout: d.get_string("layout").unwrap(),
                     template: d.get_string("template").unwrap(),
-                    created: d.get_surreal_datetime("createdAt").unwrap(),
-                    updated: d.get_surreal_datetime("updatedAt").unwrap(),
                 })
                 .await
                 .unwrap()

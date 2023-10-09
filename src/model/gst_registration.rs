@@ -9,7 +9,7 @@ pub struct GstRegistration {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub username: Option<String>,
     pub reg_type: String,
-    pub state_code: String,
+    pub state: String,
     pub gst_no: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
@@ -17,8 +17,6 @@ pub struct GstRegistration {
     pub e_invoice_username: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub e_password: Option<String>,
-    pub created: Datetime,
-    pub updated: Datetime,
 }
 
 impl GstRegistration {
@@ -43,14 +41,12 @@ impl GstRegistration {
                 .content(Self {
                     id: d.get_oid_to_thing("_id", "gst_registration").unwrap(),
                     gst_no: d.get_string("gstNo").unwrap(),
-                    state_code: d.get_string("stateCode").unwrap(),
+                    state: d.get_string("stateCode").unwrap(),
                     reg_type: d.get_string("regType").unwrap(),
                     username: d.get_string("username"),
                     email: d.get_string("email"),
                     e_invoice_username: d.get_string("eInvoiceUsername"),
                     e_password: d.get_string("ePassword"),
-                    created: d.get_surreal_datetime("createdAt").unwrap(),
-                    updated: d.get_surreal_datetime("updatedAt").unwrap(),
                 })
                 .await
                 .unwrap()

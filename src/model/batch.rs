@@ -7,77 +7,42 @@ use super::{
 pub struct Batch {
     pub id: Thing,
     pub inventory: Thing,
-    pub inventory_name: String,
     pub branch: Thing,
-    pub branch_name: String,
     pub barcode: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub batch_no: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub expiry: Option<Datetime>,
-    pub last_inward: Datetime,
-    #[serde(
-        skip_serializing_if = "Option::is_none",
-        serialize_with = "serialize_opt_round_2"
-    )]
+    pub expiry: Option<String>,
+    pub last_inward: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub mrp: Option<f64>,
-    #[serde(
-        skip_serializing_if = "Option::is_none",
-        serialize_with = "serialize_opt_round_2"
-    )]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub s_rate: Option<f64>,
-    #[serde(
-        skip_serializing_if = "Option::is_none",
-        serialize_with = "serialize_opt_round_2"
-    )]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub p_rate: Option<f64>,
     pub p_rate_tax_inc: bool,
     pub s_rate_tax_inc: bool,
-    #[serde(
-        skip_serializing_if = "Option::is_none",
-        serialize_with = "serialize_opt_round_2"
-    )]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub avg_nlc: Option<f64>,
-    #[serde(
-        skip_serializing_if = "Option::is_none",
-        serialize_with = "serialize_opt_round_2"
-    )]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub min_nlc: Option<f64>,
-    #[serde(
-        skip_serializing_if = "Option::is_none",
-        serialize_with = "serialize_opt_round_2"
-    )]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub max_nlc: Option<f64>,
-    #[serde(
-        skip_serializing_if = "Option::is_none",
-        serialize_with = "serialize_opt_round_2"
-    )]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub first_nlc: Option<f64>,
-    #[serde(
-        skip_serializing_if = "Option::is_none",
-        serialize_with = "serialize_opt_round_2"
-    )]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub last_nlc: Option<f64>,
-    #[serde(serialize_with = "serialize_round_4")]
     pub inward: f64,
-    #[serde(serialize_with = "serialize_round_4")]
     pub outward: f64,
     pub unit: Thing,
     pub unit_name: String,
-    #[serde(serialize_with = "serialize_round_4")]
     pub unit_conv: f64,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub section: Option<Thing>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub section_name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub manufacturer: Option<Thing>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub manufacturer_name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub vendors: Option<HashSet<Thing>>,
-    pub created: Datetime,
-    pub updated: Datetime,
 }
 
 impl Batch {
@@ -127,21 +92,17 @@ impl Batch {
                     id: d.get_oid_to_thing("_id", "batch").unwrap(),
                     barcode: d.get_object_id("barcode").unwrap().to_hex(),
                     batch_no: d.get_string("batchNo"),
-                    last_inward: d.get_surreal_datetime_from_str("lastInward").unwrap(),
+                    last_inward: d.get_string("lastInward").unwrap(),
                     inward: d._get_f64("inward").unwrap(),
                     outward: d._get_f64("outward").unwrap(),
                     inventory: d.get_oid_to_thing("inventory", "inventory").unwrap(),
-                    inventory_name: d.get_string("inventoryName").unwrap(),
-                    expiry: d.get_surreal_datetime_from_str("expiry"),
+                    expiry: d.get_string("expiry"),
                     branch: d.get_oid_to_thing("branch", "branch").unwrap(),
-                    branch_name: d.get_string("branchName").unwrap(),
                     unit_conv: d._get_f64("unitConv").unwrap(),
                     unit: d.get_oid_to_thing("unitId", "unit").unwrap(),
                     unit_name: d.get_string("unitName").unwrap(),
                     section: d.get_oid_to_thing("sectionId", "section"),
-                    section_name: d.get_string("sectionName"),
                     manufacturer: d.get_oid_to_thing("manufacturerId", "manufacturer"),
-                    manufacturer_name: d.get_string("manufacturerName"),
                     mrp: d._get_f64("mrp"),
                     s_rate: d._get_f64("sRate"),
                     p_rate: d._get_f64("pRate"),
@@ -153,8 +114,6 @@ impl Batch {
                     p_rate_tax_inc: d.get_bool("pRateTaxInc").unwrap_or_default(),
                     s_rate_tax_inc: d.get_bool("sRateTaxInc").unwrap_or(true),
                     vendors: d.get_array_thing("vendors", "contact"),
-                    created: d.get_surreal_datetime("createdAt").unwrap(),
-                    updated: d.get_surreal_datetime("updatedAt").unwrap(),
                 })
                 .await
                 .unwrap()

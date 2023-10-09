@@ -8,6 +8,7 @@ pub struct BankTransaction {
     pub account: Thing,
     pub account_name: String,
     pub account_type: Thing,
+    pub txn: Thing,
     #[serde(serialize_with = "serialize_round_2")]
     pub debit: f64,
     #[serde(serialize_with = "serialize_round_2")]

@@ -1,13 +1,12 @@
 use super::{
-    doc, ContactInfo, Created, Database, Datetime, Doc, Document, GstInfo, Serialize, StreamExt,
-    Surreal, SurrealClient, Thing,
+    doc, AddressInfo, ContactInfo, Created, Database, Datetime, Doc, Document, GstInfo, Serialize,
+    StreamExt, Surreal, SurrealClient, Thing,
 };
 
 #[derive(Debug, Serialize)]
 pub struct Contact {
     pub id: Thing,
     pub name: String,
-    pub val_name: String,
     pub display_name: String,
     pub contact_type: String,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -17,7 +16,7 @@ pub struct Contact {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub contact_info: Option<ContactInfo>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub address_info: Option<Document>,
+    pub address_info: Option<AddressInfo>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub aadhar_no: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -26,8 +25,6 @@ pub struct Contact {
     pub credit_account: Option<Thing>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tds_deductee_type: Option<Thing>,
-    pub created: Datetime,
-    pub updated: Datetime,
 }
 
 impl Contact {
@@ -65,20 +62,29 @@ impl Contact {
                 telephone: x.get_string("telephone"),
                 contact_person: x.get_string("contactPerson"),
             });
+            let address_info = d._get_document("addressInfo").map(|x| AddressInfo {
+                mobile: x.get_string("mobile"),
+                city: x.get_string("city"),
+                state: x
+                    .get_string("state")
+                    .map(|y| ("country".to_string(), y.to_lowercase()).into()),
+                country: x
+                    .get_string("country")
+                    .map(|y| ("country".to_string(), y.to_lowercase()).into()),
+                address: x.get_string("address"),
+                pincode: x.get_string("pincode"),
+            });
             let _created: Created = surrealdb
                 .create("contact")
                 .content(Self {
                     id: d.get_oid_to_thing("_id", "contact").unwrap(),
                     name: d.get_string("name").unwrap(),
-                    val_name: d.get_string("validateName").unwrap(),
                     display_name: d.get_string("displayName").unwrap(),
-                    created: d.get_surreal_datetime("createdAt").unwrap(),
-                    updated: d.get_surreal_datetime("updatedAt").unwrap(),
                     contact_type: d.get_string("contactType").unwrap(),
                     short_name: d.get_string("shortName"),
                     gst_info,
                     contact_info,
-                    address_info: d._get_document("addressInfo"),
+                    address_info,
                     aadhar_no: d.get_string("aadharNo"),
                     pan_no: d.get_string("panNo"),
                     credit_account: d.get_oid_to_thing("creditAccount", "account"),
