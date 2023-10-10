@@ -1,6 +1,5 @@
 use super::{
-    doc, Created, Database, Datetime, Doc, Document, HashSet, Serialize, StreamExt, Surreal,
-    SurrealClient, Thing,
+    doc, Created, Database, Doc, Document, Serialize, StreamExt, Surreal, SurrealClient, Thing,
 };
 
 #[derive(Debug, Serialize)]
@@ -23,7 +22,6 @@ pub struct Member {
     pub is_root: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub user: Option<String>,
-    pub settings: Document,
 }
 
 impl Member {
@@ -57,7 +55,6 @@ impl Member {
                     is_act: d.get_bool("isAccountant").unwrap_or_default(),
                     is_root: d.get_bool("isRoot").unwrap_or_default(),
                     user: d.get_object_id("user").ok().map(|x| x.to_hex()),
-                    settings: d._get_document("settings").unwrap(),
                 })
                 .await
                 .unwrap()

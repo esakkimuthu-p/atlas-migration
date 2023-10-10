@@ -1,6 +1,6 @@
 use super::{
-    doc, Created, Database, Datetime, Doc, Document, HashSet, Serialize, StreamExt, Surreal,
-    SurrealClient, Thing,
+    doc, Created, Database, Doc, Document, HashSet, Serialize, StreamExt, Surreal, SurrealClient,
+    Thing,
 };
 #[derive(Debug, Serialize)]
 pub struct DesktopClient {

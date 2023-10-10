@@ -1,6 +1,6 @@
 use super::{
-    doc, ContactInfo, Created, Database, Datetime, Doc, Document, GstInfo, HashSet, Serialize,
-    StreamExt, Surreal, SurrealClient, Thing,
+    doc, AddressInfo, ContactInfo, Created, Database, Doc, Document, HashSet, Serialize, StreamExt,
+    Surreal, SurrealClient, Thing,
 };
 use futures_util::TryStreamExt;
 use mongodb::options::FindOptions;
@@ -13,7 +13,7 @@ pub struct Branch {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub contact_info: Option<ContactInfo>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub address_info: Option<Document>,
+    pub address_info: Option<AddressInfo>,
     pub voucher_no_prefix: String,
     pub members: HashSet<Thing>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -67,6 +67,18 @@ impl Branch {
                 telephone: x.get_string("telephone"),
                 contact_person: x.get_string("contactPerson"),
             });
+            let address_info = d._get_document("addressInfo").map(|x| AddressInfo {
+                mobile: x.get_string("mobile"),
+                city: x.get_string("city"),
+                state: x
+                    .get_string("state")
+                    .map(|y| ("country".to_string(), y.to_lowercase()).into()),
+                country: x
+                    .get_string("country")
+                    .map(|y| ("country".to_string(), y.to_lowercase()).into()),
+                address: x.get_string("address"),
+                pincode: x.get_string("pincode"),
+            });
             let _created: Created = surrealdb
                 .create("branch")
                 .content(Self {
@@ -74,7 +86,7 @@ impl Branch {
                     name: d.get_string("name").unwrap(),
                     display_name: d.get_string("displayName").unwrap(),
                     contact_info,
-                    address_info: d._get_document("addressInfo"),
+                    address_info,
                     account: d.get_oid_to_thing("account", "account").unwrap(),
                     voucher_no_prefix: d.get_string("voucherNoPrefix").unwrap().to_uppercase(),
                     members: d.get_array_thing("members", "member").unwrap_or_default(),

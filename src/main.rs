@@ -1,3 +1,5 @@
+use futures_util::future::Lazy;
+
 use mongodb::Client as MongoClient;
 
 use surrealdb::{
@@ -7,15 +9,11 @@ use surrealdb::{
 mod model;
 
 use model::{
-    Account, Batch, BillAllocation, Branch, CashRegister, Contact, DesktopClient, DiscountCode,
-    Doctor, FinancialYear, GstRegistration, Inventory, InventoryHead, InventoryOpening,
-    Manufacturer, Member, Patient, PharmaSalt, PosTerminal, PrintTemplate, Rack, SaleIncharge,
-    Section, TdsNatureOfPayment, Unit, VendorBillMap, VendorItemMap, Voucher, VoucherNumbering,
-    VoucherType,
+    Account, Batch, Branch, Contact, DesktopClient, DiscountCode, Doctor, FinancialYear,
+    GstRegistration, Inventory, Manufacturer, Member, Patient, PharmaSalt, PosTerminal,
+    PrintTemplate, Rack, SaleIncharge, Section, TdsNatureOfPayment, Unit, VendorBillMap,
+    VendorItemMap, Voucher, VoucherNumbering, VoucherType,
 };
-
-// pub static DB: Surreal<SurrealClient> = Surreal::init();
-// pub static DB: Lazy<Surreal<Client>> = Lazy::new(Surreal::init);
 
 #[tokio::main]
 async fn main() {
@@ -50,6 +48,7 @@ async fn main() {
     FinancialYear::create(&DB, &db).await;
     Manufacturer::create(&DB, &db).await;
     Patient::create(&DB, &db).await;
+    VoucherType::create(&DB, &db).await;
     PosTerminal::create(&DB, &db).await;
     Member::create(&DB, &db).await;
     SaleIncharge::create(&DB, &db).await;
@@ -58,13 +57,9 @@ async fn main() {
     Branch::create(&DB, &db).await;
     Inventory::create(&DB, &db).await;
     Batch::create(&DB, &db).await;
-    // AccountOpening::create(&DB, &db).await;
-    // BillAllocation::create(&DB, &db).await;
     VoucherNumbering::create(&DB, &db).await;
-    // InventoryOpening::create(&DB, &db).await;
     // VendorBillMap::create(&DB, &db).await;
     // VendorItemMap::create(&DB, &db).await;
     TdsNatureOfPayment::create(&DB, &db).await;
-    VoucherType::create(&DB, &db).await;
     // Voucher::create(&DB, &db).await;
 }

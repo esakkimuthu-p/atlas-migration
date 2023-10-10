@@ -1,8 +1,6 @@
 use super::{
-    doc, serialize_opt_round_2, serialize_round_2, Created, Database, Datetime, Doc, Document,
-    Serialize, StreamExt, Surreal, SurrealClient, Thing,
+    doc, Created, Database, Doc, Document, Serialize, StreamExt, Surreal, SurrealClient, Thing,
 };
-use crate::model::{AccountTransaction, BankTransaction, InventoryTransaction};
 use futures_util::TryStreamExt;
 use mongodb::options::FindOptions;
 
@@ -12,10 +10,8 @@ pub struct Voucher {
     pub branch: Thing,
     pub voucher_type: Thing,
     pub base_voucher_type: Thing,
-    pub act: bool,
-    pub act_hide: bool,
-    pub date: Datetime,
-    pub eff_date: Datetime,
+    pub date: String,
+    pub eff_date: String,
     pub voucher_no: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub contact: Option<Thing>,
@@ -26,10 +22,7 @@ pub struct Voucher {
     pub ref_no: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    #[serde(serialize_with = "serialize_round_2")]
     pub amount: f64,
-    pub created: Datetime,
-    pub updated: Datetime,
 }
 
 fn get_alt_accounts(
@@ -191,9 +184,9 @@ impl Voucher {
                 let id = d.get_oid_to_thing("_id", "voucher").unwrap();
                 let branch = d.get_oid_to_thing("branch", "branch").unwrap();
                 let eff_date = d
-                    .get_surreal_datetime_from_str("effDate")
-                    .unwrap_or(d.get_surreal_datetime_from_str("date").unwrap());
-                let date = d.get_surreal_datetime_from_str("date").unwrap();
+                    .get_string("effDate")
+                    .unwrap_or(d.get_string("date").unwrap());
+                let date = d.get_string("date").unwrap();
                 let ref_no = d.get_string("refNo");
                 let branch_name = d.get_string("branchName").unwrap();
                 let base_voucher_type: Thing = (
@@ -238,14 +231,10 @@ impl Voucher {
                         contact_name: contact_name.clone(),
                         voucher_type,
                         base_voucher_type: base_voucher_type.clone(),
-                        act,
-                        act_hide,
                         mode: mode.clone().unwrap_or("ACC".to_string()),
                         voucher_no,
                         description: d.get_string("description"),
                         amount: d._get_f64("amount").unwrap_or_default(),
-                        created: d.get_surreal_datetime("createdAt").unwrap(),
-                        updated: d.get_surreal_datetime("updatedAt").unwrap(),
                     })
                     .await
                     .unwrap()
@@ -282,78 +271,6 @@ impl Voucher {
                                     account_doc.get_string("displayName").unwrap(),
                                 )
                             };
-                        if ["bank_account".to_string(), "bank_od_account".to_string()]
-                            .contains(&account_type)
-                        {
-                            let (inst_no, inst_date, in_favour_of) =
-                                if let Some(cheque_detail) = ac_trn._get_document("chequeDetail") {
-                                    (
-                                        cheque_detail.get_string("instNo"),
-                                        cheque_detail.get_surreal_datetime_from_str("instDate"),
-                                        cheque_detail.get_string("inFavourOf"),
-                                    )
-                                } else {
-                                    (None, None, None)
-                                };
-                            let _created: Created = surrealdb
-                                .create("bank_txn")
-                                .content(BankTransaction {
-                                    date: date.clone(),
-                                    debit: ac_trn._get_f64("debit").unwrap_or_default(),
-                                    credit: ac_trn._get_f64("credit").unwrap_or_default(),
-                                    account: account.clone(),
-                                    account_name: account_name.clone(),
-                                    txn: id.clone(),
-                                    account_type: (
-                                        "account_type".to_string(),
-                                        account_type.clone(),
-                                    )
-                                        .into(),
-                                    branch: branch.clone(),
-                                    branch_name: branch_name.clone(),
-                                    alt_account: alt_account.clone().map(|x| x.0),
-                                    alt_account_name: alt_account.clone().map(|x| x.1),
-                                    inst_no,
-                                    in_favour_of,
-                                    voucher: Some(id.clone()),
-                                    bank_date: None,
-                                    inst_date,
-                                })
-                                .await
-                                .unwrap()
-                                .first()
-                                .cloned()
-                                .unwrap();
-                        }
-                        let _created: Created = surrealdb
-                            .create("ac_txn")
-                            .content(AccountTransaction {
-                                id: id.clone(),
-                                date: date.clone(),
-                                debit: ac_trn._get_f64("debit").unwrap(),
-                                credit,
-                                account,
-                                account_name,
-                                account_type: ("account_type".to_string(), account_type).into(),
-                                branch: branch.clone(),
-                                branch_name: branch_name.clone(),
-                                act,
-                                act_hide,
-                                alt_account: alt_account.clone().map(|x| x.0),
-                                alt_account_name: alt_account.map(|x| x.1),
-                                ref_no: ref_no.clone(),
-                                base_voucher_type: Some(base_voucher_type.clone()),
-                                voucher: Some(id.clone()),
-                                is_opening: None,
-                                is_default: ac_trn.get_bool("isDefault").ok(),
-                                gst_tax: ac_trn.get_string("tax"),
-                                voucher_mode: mode.clone(),
-                            })
-                            .await
-                            .unwrap()
-                            .first()
-                            .cloned()
-                            .unwrap();
                     }
                 }
                 if let Some(inv_trns) = d.get_array_document("invTrns") {
@@ -386,53 +303,6 @@ impl Voucher {
                                 x.get_object_id("_id").unwrap()
                                     == inv_trn.get_object_id("inventory").unwrap()
                             })
-                            .unwrap();
-                        let _created: Created = surrealdb
-                            .create("inv_txn")
-                            .content(InventoryTransaction {
-                                date: date.clone(),
-                                inward,
-                                outward,
-                                free_qty,
-                                qty: qty.unwrap_or_default(),
-                                rate: inv_trn._get_f64("rate").unwrap(),
-                                unit_precision: inv_trn._get_f64("unitPrecision").unwrap() as u8,
-                                branch: branch.clone(),
-                                branch_name: branch_name.clone(),
-                                gst_tax: inv_trn.get_string("tax"),
-                                disc: inv_trn._get_document("disc"),
-                                act,
-                                act_hide,
-                                ref_no: ref_no.clone(),
-                                base_voucher_type: Some(base_voucher_type.clone()),
-                                voucher: Some(id.clone()),
-                                is_opening: None,
-                                batch: inv_trn.get_oid_to_thing("batch", "batch").unwrap(),
-                                inventory: inv_trn
-                                    .get_oid_to_thing("inventory", "inventory")
-                                    .unwrap(),
-                                inventory_name: inventory_doc.get_string("displayName").unwrap(),
-                                unit_conv,
-                                sale_inc: inv_trn.get_oid_to_thing("sInc", "sale_incharge "),
-                                section: inventory_doc.get_oid_to_thing("sectionId", "section"),
-                                section_name: inventory_doc.get_string("sectionName"),
-                                manufacturer: inventory_doc
-                                    .get_oid_to_thing("manufacturerId", "manufacturer"),
-                                manufacturer_name: inventory_doc.get_string("manufacturerName"),
-                                contact: contact.clone(),
-                                contact_name: contact_name.clone(),
-                                asset_amount: inv_trn._get_f64("assetAmount"),
-                                taxable_amount: inv_trn._get_f64("taxableAmount"),
-                                cgst_amount: inv_trn._get_f64("cgstAmount"),
-                                cess_amount: inv_trn._get_f64("cessAmount"),
-                                sgst_amount: inv_trn._get_f64("sgstAmount"),
-                                igst_amount: inv_trn._get_f64("igstAmount"),
-                                nlc,
-                            })
-                            .await
-                            .unwrap()
-                            .first()
-                            .cloned()
                             .unwrap();
                     }
                 }

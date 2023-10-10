@@ -1,6 +1,5 @@
 use super::{
-    doc, Created, Database, Datetime, Doc, Document, Serialize, StreamExt, Surreal, SurrealClient,
-    Thing,
+    doc, Created, Database, Doc, Document, Serialize, StreamExt, Surreal, SurrealClient, Thing,
 };
 #[derive(Debug, Serialize)]
 pub struct PrintTemplate {
@@ -34,7 +33,9 @@ impl PrintTemplate {
                 .content(Self {
                     id: d.get_oid_to_thing("_id", "print_template").unwrap(),
                     name: d.get_string("name").unwrap(),
-                    voucher_mode: d.get_string("voucherMode"),
+                    voucher_mode: d
+                        .get_string("voucherMode")
+                        .map(|ref x| x.chars().skip(0).take(3).collect()),
                     layout: d.get_string("layout").unwrap(),
                     template: d.get_string("template").unwrap(),
                 })

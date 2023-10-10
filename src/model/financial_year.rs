@@ -1,6 +1,5 @@
 use super::{
-    doc, Created, Database, Datetime, Doc, Document, Serialize, StreamExt, Surreal, SurrealClient,
-    Thing,
+    doc, Created, Database, Doc, Document, Serialize, StreamExt, Surreal, SurrealClient, Thing,
 };
 #[derive(Debug, Serialize)]
 pub struct FinancialYear {

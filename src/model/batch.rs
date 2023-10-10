@@ -1,6 +1,6 @@
 use super::{
-    doc, serialize_opt_round_2, serialize_round_4, Created, Database, Datetime, Doc, Document,
-    HashSet, Serialize, StreamExt, Surreal, SurrealClient, Thing,
+    doc, Created, Database, Doc, Document, HashSet, Serialize, StreamExt, Surreal, SurrealClient,
+    Thing,
 };
 
 #[derive(Debug, Serialize)]

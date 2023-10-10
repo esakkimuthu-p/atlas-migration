@@ -1,6 +1,5 @@
 use super::{
-    doc, Created, Database, Datetime, Doc, Document, HashSet, Serialize, StreamExt, Surreal,
-    SurrealClient, Thing,
+    doc, Created, Database, Doc, Document, Serialize, StreamExt, Surreal, SurrealClient, Thing,
 };
 use mongodb::options::FindOptions;
 

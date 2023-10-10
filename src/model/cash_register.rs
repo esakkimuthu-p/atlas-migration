@@ -1,8 +1,7 @@
 use std::collections::HashSet;
 
 use super::{
-    doc, Created, Database, Datetime, Doc, Document, Serialize, StreamExt, Surreal, SurrealClient,
-    Thing,
+    doc, Created, Database, Doc, Document, Serialize, StreamExt, Surreal, SurrealClient, Thing,
 };
 #[derive(Debug, Serialize)]
 pub struct CashRegister {
@@ -16,8 +15,6 @@ pub struct CashRegister {
     pub controller_only: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub opening: Option<f64>,
-    pub created: Datetime,
-    pub updated: Datetime,
 }
 impl CashRegister {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {

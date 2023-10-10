@@ -1,7 +1,7 @@
 use mongodb::bson::from_document;
 
 use super::{
-    doc, AmountInfo, Created, Database, Datetime, Doc, Document, Serialize, StreamExt, Surreal,
+    doc, AmountInfo, Created, Database, Doc, Document, Serialize, StreamExt, Surreal,
     SurrealClient, Thing,
 };
 

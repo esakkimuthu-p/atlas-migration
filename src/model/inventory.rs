@@ -1,6 +1,6 @@
 use super::{
-    doc, serialize_tax_as_thing, AmountInfo, Created, Database, Datetime, Deserialize, Doc,
-    Document, HashSet, Id, Serialize, StreamExt, Surreal, SurrealClient, Thing,
+    doc, serialize_tax_as_thing, AmountInfo, Created, Database, Deserialize, Doc, Document,
+    HashSet, Id, Serialize, StreamExt, Surreal, SurrealClient, Thing,
 };
 use futures_util::TryStreamExt;
 use mongodb::{bson::from_document, options::FindOptions};
@@ -203,6 +203,24 @@ impl Inventory {
                 .first()
                 .cloned()
                 .unwrap();
+            if !units.is_empty() {
+                for u in units {
+                    let _created: Created = surrealdb
+                        .create("inventory_unit")
+                        .content(InventoryUnit {
+                            inventory: id.clone(),
+                            conversion: u.conversion,
+                            preferred_for_purchase: u.preferred_for_purchase,
+                            preferred_for_sale: u.preferred_for_sale,
+                            unit: u.unit,
+                        })
+                        .await
+                        .unwrap()
+                        .first()
+                        .cloned()
+                        .unwrap();
+                }
+            }
             if let Some(branch_details) = d.get_array_document("branchDetails") {
                 for br_detail in branch_details {
                     let s_disc = br_detail

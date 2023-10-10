@@ -1,6 +1,5 @@
 use super::{
-    doc, Created, Database, Datetime, Doc, Document, Serialize, StreamExt, Surreal, SurrealClient,
-    Thing,
+    doc, Created, Database, Doc, Document, Serialize, StreamExt, Surreal, SurrealClient, Thing,
 };
 
 #[derive(Debug, Serialize)]
@@ -9,7 +8,7 @@ pub struct GstRegistration {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub username: Option<String>,
     pub reg_type: String,
-    pub state: String,
+    pub state: Thing,
     pub gst_no: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
@@ -41,7 +40,7 @@ impl GstRegistration {
                 .content(Self {
                     id: d.get_oid_to_thing("_id", "gst_registration").unwrap(),
                     gst_no: d.get_string("gstNo").unwrap(),
-                    state: d.get_string("stateCode").unwrap(),
+                    state: ("country".to_string(), "tamilnadu".to_string()).into(),
                     reg_type: d.get_string("regType").unwrap(),
                     username: d.get_string("username"),
                     email: d.get_string("email"),

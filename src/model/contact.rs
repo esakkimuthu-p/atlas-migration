@@ -1,6 +1,6 @@
 use super::{
-    doc, AddressInfo, ContactInfo, Created, Database, Datetime, Doc, Document, GstInfo, Serialize,
-    StreamExt, Surreal, SurrealClient, Thing,
+    doc, AddressInfo, ContactInfo, Created, Database, Doc, Document, GstInfo, Serialize, StreamExt,
+    Surreal, SurrealClient, Thing,
 };
 
 #[derive(Debug, Serialize)]

@@ -2,6 +2,8 @@ use super::{
     doc, Created, Database, Doc, Document, HashSet, Serialize, StreamExt, Surreal, SurrealClient,
     Thing,
 };
+use futures_util::TryStreamExt;
+use mongodb::options::FindOptions;
 
 // fn default_sale() -> Thing {
 //     ("voucher_type".to_string(), "sale".to_string()).into()
@@ -129,6 +131,17 @@ impl PosTerminal {
             .find(doc! {}, None)
             .await
             .unwrap();
+        let find_opts = FindOptions::builder()
+            .projection(doc! {"default": 1, "voucherType": 1})
+            .build();
+        let voucher_types = mongodb
+            .collection::<Document>("voucher_types")
+            .find(doc! {}, find_opts)
+            .await
+            .unwrap()
+            .try_collect::<Vec<Document>>()
+            .await
+            .unwrap();
         while let Some(Ok(d)) = cur.next().await {
             // let mut sale: Option<PosSaleConfig> = None;
             // let mut credit_note: Option<PosCreditNoteConfig> = None;
@@ -145,12 +158,20 @@ impl PosTerminal {
             //     {
             //         match key.as_str() {
             //             "sale" => {
+            //                 let v_type = voucher_types.iter().find_map(|x| {
+            //                     (x.get_object_id("_id").unwrap().to_hex()
+            //                         == bs.get_string("voucherType").unwrap()
+            //                         && x.get_bool("default").unwrap_or_default())
+            //                     .then_some(("voucher_type".to_string(), "sale".to_string()).into())
+            //                 });
             //                 sale = Some(PosSaleConfig {
-            //                     voucher_type: (
-            //                         "voucher_type".to_string(),
-            //                         bs.get_string("voucherType").unwrap(),
-            //                     )
-            //                         .into(),
+            //                     voucher_type: v_type.unwrap_or(
+            //                         (
+            //                             "voucher_type".to_string(),
+            //                             bs.get_string("voucherType").unwrap(),
+            //                         )
+            //                             .into(),
+            //                     ),
             //                     rate_editable: bs.get_bool("rateEditable").unwrap_or_default(),
             //                     discount_editable: bs
             //                         .get_bool("discountEditable")
@@ -171,12 +192,22 @@ impl PosTerminal {
             //                 })
             //             }
             //             "creditNote" => {
-            //                 credit_note = Some(PosCreditNoteConfig {
-            //                     voucher_type: (
-            //                         "voucher_type".to_string(),
-            //                         bs.get_string("voucherType").unwrap(),
+            //                 let v_type = voucher_types.iter().find_map(|x| {
+            //                     (x.get_object_id("_id").unwrap().to_hex()
+            //                         == bs.get_string("voucherType").unwrap()
+            //                         && x.get_bool("default").unwrap_or_default())
+            //                     .then_some(
+            //                         ("voucher_type".to_string(), "credit_note".to_string()).into(),
             //                     )
-            //                         .into(),
+            //                 });
+            //                 credit_note = Some(PosCreditNoteConfig {
+            //                     voucher_type: v_type.unwrap_or(
+            //                         (
+            //                             "voucher_type".to_string(),
+            //                             bs.get_string("voucherType").unwrap(),
+            //                         )
+            //                             .into(),
+            //                     ),
             //                     rate_editable: bs.get_bool("rateEditable").unwrap_or_default(),
             //                     discount_editable: bs
             //                         .get_bool("discountEditable")
@@ -194,32 +225,62 @@ impl PosTerminal {
             //                 })
             //             }
             //             "payment" => {
-            //                 payment = Some(PosPaymentConfig {
-            //                     voucher_type: (
-            //                         "voucher_type".to_string(),
-            //                         bs.get_string("voucherType").unwrap(),
+            //                 let v_type = voucher_types.iter().find_map(|x| {
+            //                     (x.get_object_id("_id").unwrap().to_hex()
+            //                         == bs.get_string("voucherType").unwrap()
+            //                         && x.get_bool("default").unwrap_or_default())
+            //                     .then_some(
+            //                         ("voucher_type".to_string(), "payment".to_string()).into(),
             //                     )
-            //                         .into(),
+            //                 });
+            //                 payment = Some(PosPaymentConfig {
+            //                     voucher_type: v_type.unwrap_or(
+            //                         (
+            //                             "voucher_type".to_string(),
+            //                             bs.get_string("voucherType").unwrap(),
+            //                         )
+            //                             .into(),
+            //                     ),
             //                     expense_only: bs.get_bool("expenseOnly").unwrap_or_default(),
             //                 })
             //             }
             //             "receipt" => {
-            //                 receipt = Some(PosReceiptConfig {
-            //                     voucher_type: (
-            //                         "voucher_type".to_string(),
-            //                         bs.get_string("voucherType").unwrap(),
+            //                 let v_type = voucher_types.iter().find_map(|x| {
+            //                     (x.get_object_id("_id").unwrap().to_hex()
+            //                         == bs.get_string("voucherType").unwrap()
+            //                         && x.get_bool("default").unwrap_or_default())
+            //                     .then_some(
+            //                         ("voucher_type".to_string(), "receipt".to_string()).into(),
             //                     )
-            //                         .into(),
+            //                 });
+            //                 receipt = Some(PosReceiptConfig {
+            //                     voucher_type: v_type.unwrap_or(
+            //                         (
+            //                             "voucher_type".to_string(),
+            //                             bs.get_string("voucherType").unwrap(),
+            //                         )
+            //                             .into(),
+            //                     ),
             //                     income_only: bs.get_bool("incomeOnly").unwrap_or_default(),
             //                 })
             //             }
             //             "contra" => {
-            //                 contra = Some(PosContraConfig {
-            //                     voucher_type: (
-            //                         "voucher_type".to_string(),
-            //                         bs.get_string("voucherType").unwrap(),
+            //                 let v_type = voucher_types.iter().find_map(|x| {
+            //                     (x.get_object_id("_id").unwrap().to_hex()
+            //                         == bs.get_string("voucherType").unwrap()
+            //                         && x.get_bool("default").unwrap_or_default())
+            //                     .then_some(
+            //                         ("voucher_type".to_string(), "contra".to_string()).into(),
             //                     )
-            //                         .into(),
+            //                 });
+            //                 contra = Some(PosContraConfig {
+            //                     voucher_type: v_type.unwrap_or(
+            //                         (
+            //                             "voucher_type".to_string(),
+            //                             bs.get_string("voucherType").unwrap(),
+            //                         )
+            //                             .into(),
+            //                     ),
             //                 })
             //             }
             //             "settlement" => {
@@ -232,6 +293,9 @@ impl PosTerminal {
             //                 })
             //             }
             //             "allowedVoucherypes" => {
+            //                 let x = config_doc
+            //                     .get_array("allowedVoucherypes")
+            //                     .unwrap_or_default().iter().map(|x|x.);
             //                 allowed_voucher_types = config_doc
             //                     .get_array_thing_from_str("allowedVoucherypes", "voucher_type")
             //                     .unwrap_or_default()
@@ -266,6 +330,7 @@ impl PosTerminal {
                     members: d.get_array_thing("members", "member").unwrap_or_default(),
                     mode: d.get_string("mode").unwrap(),
                     is_active: d.get_bool("isActive").unwrap_or_default(),
+                    // config,
                 })
                 .await
                 .unwrap()

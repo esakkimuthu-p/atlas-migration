@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::str::FromStr;
 
 use futures_util::StreamExt;
@@ -9,19 +9,13 @@ use mongodb::{
 use serde::{Deserialize, Serialize, Serializer};
 use surrealdb::{
     engine::remote::ws::Client as SurrealClient,
-    sql::Datetime,
     sql::{Id, Thing},
     Surreal,
 };
 
 mod account;
-// mod account_opening;
-mod account_transaction;
-mod bank_txn;
 mod batch;
-mod bill_allocation;
 mod branch;
-mod cash_register;
 mod contact;
 mod desktop_client;
 mod discount_code;
@@ -29,9 +23,6 @@ mod doctor;
 mod financial_year;
 mod gst_registration;
 mod inventory;
-mod inventory_head;
-mod inventory_opening;
-mod inventory_transaction;
 mod manufacturer;
 mod member;
 mod patient;
@@ -49,13 +40,8 @@ mod voucher_numbering;
 mod voucher_type;
 
 pub use account::Account;
-// pub use account_opening::AccountOpening;
-pub use account_transaction::AccountTransaction;
-pub use bank_txn::BankTransaction;
 pub use batch::Batch;
-pub use bill_allocation::BillAllocation;
 pub use branch::Branch;
-pub use cash_register::CashRegister;
 pub use contact::Contact;
 pub use desktop_client::DesktopClient;
 pub use discount_code::DiscountCode;
@@ -63,9 +49,6 @@ pub use doctor::Doctor;
 pub use financial_year::FinancialYear;
 pub use gst_registration::GstRegistration;
 pub use inventory::*;
-pub use inventory_head::InventoryHead;
-pub use inventory_opening::InventoryOpening;
-pub use inventory_transaction::InventoryTransaction;
 pub use manufacturer::Manufacturer;
 pub use member::Member;
 pub use patient::Patient;
@@ -230,22 +213,22 @@ pub trait Doc {
     fn get_array_thing(&self, key: &str, coll: &str) -> Option<HashSet<Thing>>;
     fn get_array_thing_from_str(&self, key: &str, coll: &str) -> Option<HashSet<Thing>>;
     fn get_oid_to_thing(&self, key: &str, coll: &str) -> Option<Thing>;
-    fn get_surreal_datetime(&self, key: &str) -> Option<Datetime>;
-    fn get_surreal_datetime_from_str(&self, key: &str) -> Option<Datetime>;
+    // fn get_surreal_datetime(&self, key: &str) -> Option<Datetime>;
+    // fn get_surreal_datetime_from_str(&self, key: &str) -> Option<Datetime>;
 }
 
 impl Doc for Document {
     fn get_string(&self, key: &str) -> Option<String> {
         self.get_str(key).map(|x| x.to_string()).ok()
     }
-    fn get_surreal_datetime(&self, key: &str) -> Option<Datetime> {
-        self.get_datetime(key).ok().map(|x| x.to_chrono().into())
-    }
-    fn get_surreal_datetime_from_str(&self, key: &str) -> Option<Datetime> {
-        self.get_str(key)
-            .ok()
-            .map(|x| Datetime::try_from(x).unwrap())
-    }
+    // fn get_surreal_datetime(&self, key: &str) -> Option<Datetime> {
+    //     self.get_datetime(key).ok().map(|x| x.to_chrono().into())
+    // }
+    // fn get_surreal_datetime_from_str(&self, key: &str) -> Option<Datetime> {
+    //     self.get_str(key)
+    //         .ok()
+    //         .map(|x| Datetime::try_from(x).unwrap())
+    // }
     fn _get_document(&self, key: &str) -> Option<Document> {
         self.get_document(key).ok().cloned()
     }
