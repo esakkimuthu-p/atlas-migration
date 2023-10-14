@@ -10,15 +10,6 @@ pub struct Rack {
 
 impl Rack {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("rack INDEX start");
-        surrealdb
-            .query("DEFINE INDEX val_name ON TABLE rack COLUMNS val_name")
-            .await
-            .unwrap()
-            .take::<Option<()>>(0)
-            .unwrap();
-        println!("rack INDEX end");
-        println!("rack download start");
         let mut cur = mongodb
             .collection::<Document>("racks")
             .find(doc! {}, None)

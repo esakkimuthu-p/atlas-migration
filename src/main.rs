@@ -1,18 +1,14 @@
-use futures_util::future::Lazy;
-
 use mongodb::Client as MongoClient;
 
-use surrealdb::{
-    engine::remote::ws::Client as SurrealClient, engine::remote::ws::Ws, opt::auth::Root, Surreal,
-};
+use surrealdb::{engine::remote::ws::Ws, opt::auth::Root, Surreal};
 
 mod model;
 
 use model::{
-    Account, Batch, Branch, Contact, DesktopClient, DiscountCode, Doctor, FinancialYear,
-    GstRegistration, Inventory, Manufacturer, Member, Patient, PharmaSalt, PosTerminal,
-    PrintTemplate, Rack, SaleIncharge, Section, TdsNatureOfPayment, Unit, VendorBillMap,
-    VendorItemMap, Voucher, VoucherNumbering, VoucherType,
+    duplicate_fix, Account, Batch, Branch, Contact, DesktopClient, DiscountCode, Doctor,
+    FinancialYear, GstRegistration, Inventory, Manufacturer, Member, Patient, PharmaSalt,
+    PosTerminal, PrintTemplate, Rack, SaleIncharge, Section, TdsNatureOfPayment, Unit,
+    VoucherApiInput, VoucherNumbering, VoucherType,
 };
 
 #[tokio::main]
@@ -20,46 +16,48 @@ async fn main() {
     dotenv::dotenv().unwrap();
     let db_host = std::env::var("DB_HOST").expect("DB_HOST must be set");
     let uri = std::env::var("URI").expect("URI must be set");
-    let DB = Surreal::new::<Ws>(db_host).await.unwrap();
-    DB.signin(Root {
-        username: "root",
-        password: "root",
-    })
-    .await
-    .unwrap();
-    DB.use_ns("test").await.unwrap();
-    DB.use_db("test").await.unwrap();
+    let surrealdb = Surreal::new::<Ws>(db_host).await.unwrap();
+    surrealdb
+        .signin(Root {
+            username: "root",
+            password: "root",
+        })
+        .await
+        .unwrap();
+    surrealdb.use_ns("test").await.unwrap();
+    surrealdb.use_db("test").await.unwrap();
 
-    let db = MongoClient::with_uri_str(uri)
+    let mongodb = MongoClient::with_uri_str(uri)
         .await
         .unwrap()
         .default_database()
         .unwrap();
-    println!("{:?}", db.name());
-    Rack::create(&DB, &db).await;
-    PharmaSalt::create(&DB, &db).await;
-    Unit::create(&DB, &db).await;
-    Doctor::create(&DB, &db).await;
-    Account::create(&DB, &db).await;
-    Contact::create(&DB, &db).await;
-    Section::create(&DB, &db).await;
-    DesktopClient::create(&DB, &db).await;
-    DiscountCode::create(&DB, &db).await;
-    FinancialYear::create(&DB, &db).await;
-    Manufacturer::create(&DB, &db).await;
-    Patient::create(&DB, &db).await;
-    VoucherType::create(&DB, &db).await;
-    PosTerminal::create(&DB, &db).await;
-    Member::create(&DB, &db).await;
-    SaleIncharge::create(&DB, &db).await;
-    GstRegistration::create(&DB, &db).await;
-    PrintTemplate::create(&DB, &db).await;
-    Branch::create(&DB, &db).await;
-    Inventory::create(&DB, &db).await;
-    Batch::create(&DB, &db).await;
-    VoucherNumbering::create(&DB, &db).await;
-    // VendorBillMap::create(&DB, &db).await;
-    // VendorItemMap::create(&DB, &db).await;
-    TdsNatureOfPayment::create(&DB, &db).await;
-    // Voucher::create(&DB, &db).await;
+    duplicate_fix(&mongodb).await;
+    println!("{:?}", mongodb.name());
+    Rack::create(&surrealdb, &mongodb).await;
+    PharmaSalt::create(&surrealdb, &mongodb).await;
+    Unit::create(&surrealdb, &mongodb).await;
+    Doctor::create(&surrealdb, &mongodb).await;
+    Account::create(&surrealdb, &mongodb).await;
+    Contact::create(&surrealdb, &mongodb).await;
+    Section::create(&surrealdb, &mongodb).await;
+    DesktopClient::create(&surrealdb, &mongodb).await;
+    DiscountCode::create(&surrealdb, &mongodb).await;
+    FinancialYear::create(&surrealdb, &mongodb).await;
+    Manufacturer::create(&surrealdb, &mongodb).await;
+    Patient::create(&surrealdb, &mongodb).await;
+    VoucherType::create(&surrealdb, &mongodb).await;
+    PosTerminal::create(&surrealdb, &mongodb).await;
+    Member::create(&surrealdb, &mongodb).await;
+    SaleIncharge::create(&surrealdb, &mongodb).await;
+    GstRegistration::create(&surrealdb, &mongodb).await;
+    PrintTemplate::create(&surrealdb, &mongodb).await;
+    Branch::create(&surrealdb, &mongodb).await;
+    Inventory::create(&surrealdb, &mongodb).await;
+    Batch::create(&surrealdb, &mongodb).await;
+    VoucherNumbering::create(&surrealdb, &mongodb).await;
+    TdsNatureOfPayment::create(&surrealdb, &mongodb).await;
+    VoucherApiInput::create(&surrealdb, &mongodb).await;
+    VoucherApiInput::create_stock_journal(&surrealdb, &mongodb, "stock_transfers").await;
+    VoucherApiInput::create_stock_journal(&surrealdb, &mongodb, "stock_adjustments").await;
 }

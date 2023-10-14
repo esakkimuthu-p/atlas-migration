@@ -26,14 +26,6 @@ pub struct Member {
 
 impl Member {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("member INDEX start");
-        surrealdb
-            .query("DEFINE INDEX use ON TABLE member COLUMNS val_name")
-            .await
-            .unwrap()
-            .take::<Option<()>>(0)
-            .unwrap();
-        println!("member INDEX end");
         println!("member download start");
         let mut cur = mongodb
             .collection::<Document>("members")

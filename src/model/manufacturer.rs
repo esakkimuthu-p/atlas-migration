@@ -16,14 +16,6 @@ pub struct Manufacturer {
 
 impl Manufacturer {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("manufacturer INDEX start");
-        surrealdb
-            .query("DEFINE INDEX val_name ON TABLE manufacturer COLUMNS val_name")
-            .await
-            .unwrap()
-            .take::<Option<()>>(0)
-            .unwrap();
-        println!("manufacturer INDEX end");
         println!("manufacturer download start");
         let mut cur = mongodb
             .collection::<Document>("manufacturers")

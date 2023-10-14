@@ -20,14 +20,6 @@ pub struct GstRegistration {
 
 impl GstRegistration {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("gst_registration INDEX start");
-        surrealdb
-            .query("DEFINE INDEX gst_no ON TABLE gst_registration COLUMNS gst_no")
-            .await
-            .unwrap()
-            .take::<Option<()>>(0)
-            .unwrap();
-        println!("gst_registration INDEX end");
         println!("gst_registration download start");
         let mut cur = mongodb
             .collection::<Document>("gst_registrations")

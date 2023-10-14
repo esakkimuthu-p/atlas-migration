@@ -12,15 +12,6 @@ pub struct Unit {
 
 impl Unit {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("unit INDEX start");
-        surrealdb
-            .query("DEFINE INDEX val_name ON TABLE unit COLUMNS val_name")
-            .await
-            .unwrap()
-            .take::<Option<()>>(0)
-            .unwrap();
-        println!("unit INDEX end");
-        println!("unit download start");
         let mut cur = mongodb
             .collection::<Document>("units")
             .find(doc! {}, None)

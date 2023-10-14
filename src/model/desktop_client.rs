@@ -14,15 +14,6 @@ pub struct DesktopClient {
 
 impl DesktopClient {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("desktop_client INDEX start");
-        surrealdb
-            .query("DEFINE INDEX val_name ON TABLE desktop_client COLUMNS val_name")
-            .await
-            .unwrap()
-            .take::<Option<()>>(0)
-            .unwrap();
-        println!("desktop_client INDEX end");
-        println!("desktop_client download start");
         let mut cur = mongodb
             .collection::<Document>("desktop_clients")
             .find(doc! {}, None)

@@ -1,8 +1,7 @@
 use super::{
     doc, serialize_tax_as_thing, AmountInfo, Created, Database, Deserialize, Doc, Document,
-    HashSet, Id, Serialize, StreamExt, Surreal, SurrealClient, Thing,
+    HashSet, Id, Serialize, Surreal, SurrealClient, Thing, TryStreamExt,
 };
-use futures_util::TryStreamExt;
 use mongodb::{bson::from_document, options::FindOptions};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -95,28 +94,8 @@ pub struct Inventory {
 
 impl Inventory {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("inventory INDEX start");
-        surrealdb
-            .query("DEFINE INDEX validate_name ON TABLE inventory COLUMNS validate_name")
-            .await
-            .unwrap()
-            .take::<Option<()>>(0)
-            .unwrap();
-        surrealdb
-            .query("DEFINE INDEX barcodes ON TABLE inventory COLUMNS barcodes")
-            .await
-            .unwrap()
-            .take::<Option<()>>(0)
-            .unwrap();
-        println!("inventory INDEX end");
-        // inventories
         println!("inventory download start");
 
-        let mut cur = mongodb
-            .collection::<Document>("inventories")
-            .find(doc! {}, None)
-            .await
-            .unwrap();
         let find_opts = FindOptions::builder()
             .projection(doc! {"inventoryHead": 1})
             .build();
@@ -128,10 +107,19 @@ impl Inventory {
             .try_collect::<Vec<Document>>()
             .await
             .unwrap();
-        while let Some(Ok(d)) = cur.next().await {
-            let cess = d
-                ._get_document("cess")
-                .and_then(|x| from_document::<InventoryCess>(x).ok());
+
+        let find_opts = FindOptions::builder()
+            .projection(doc! {"createdAt": 0, "updatedAt": 0, "createdBy": 0, "updatedBy": 0})
+            .build();
+        let mut cur = mongodb
+            .collection::<Document>("inventories")
+            .find(doc! {}, find_opts)
+            .await
+            .unwrap();
+        while let Ok(Some(d)) = cur.try_next().await {
+            let cess = d._get_document("cess").and_then(|x| {
+                (!x.is_empty()).then_some(from_document::<InventoryCess>(x).unwrap())
+            });
             let mut units = Vec::new();
             let mut primary_unit = Thing {
                 id: Id::rand(),
@@ -150,7 +138,12 @@ impl Inventory {
                 };
                 if unit.conversion == 1.0 {
                     primary_unit = unit.unit;
-                } else {
+                } else if !(units
+                    .iter()
+                    .map(|x: &InventoryUnit| x.conversion)
+                    .collect::<Vec<f64>>()
+                    .contains(&unit.conversion))
+                {
                     units.push(unit);
                 }
             }

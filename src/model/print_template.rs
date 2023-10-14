@@ -13,14 +13,6 @@ pub struct PrintTemplate {
 
 impl PrintTemplate {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("print_template INDEX start");
-        surrealdb
-            .query("DEFINE INDEX name ON TABLE print_template COLUMNS name")
-            .await
-            .unwrap()
-            .take::<Option<()>>(0)
-            .unwrap();
-        println!("print_template INDEX end");
         println!("print_template download start");
         let mut cur = mongodb
             .collection::<Document>("print_templates")

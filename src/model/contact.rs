@@ -29,21 +29,6 @@ pub struct Contact {
 
 impl Contact {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("contact INDEX start");
-        surrealdb
-            .query("DEFINE INDEX val_name ON TABLE contact COLUMNS val_name")
-            .await
-            .unwrap()
-            .take::<Option<()>>(0)
-            .unwrap();
-        surrealdb
-            .query("DEFINE INDEX mob ON TABLE contact COLUMNS contact_info.mobile")
-            .await
-            .unwrap()
-            .take::<Option<()>>(0)
-            .unwrap();
-        println!("contact INDEX end");
-        println!("contact download start");
         let mut cur = mongodb
             .collection::<Document>("contacts")
             .find(doc! {}, None)

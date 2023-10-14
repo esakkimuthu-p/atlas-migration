@@ -12,21 +12,6 @@ pub struct Patient {
 
 impl Patient {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("patient INDEX start");
-        surrealdb
-            .query("DEFINE INDEX val_name ON TABLE patient COLUMNS val_name")
-            .await
-            .unwrap()
-            .take::<Option<()>>(0)
-            .unwrap();
-        surrealdb
-            .query("DEFINE INDEX cust ON TABLE patient COLUMNS customer")
-            .await
-            .unwrap()
-            .take::<Option<()>>(0)
-            .unwrap();
-        println!("patient INDEX end");
-        println!("patient download start");
         let mut cur = mongodb
             .collection::<Document>("patients")
             .find(doc! {}, None)

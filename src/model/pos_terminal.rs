@@ -117,14 +117,6 @@ pub struct PosTerminal {
 
 impl PosTerminal {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("pos_terminal INDEX start");
-        surrealdb
-            .query("DEFINE INDEX name ON TABLE pos_terminal COLUMNS name")
-            .await
-            .unwrap()
-            .take::<Option<()>>(0)
-            .unwrap();
-        println!("pos_terminal INDEX end");
         println!("pos_terminal download start");
         let mut cur = mongodb
             .collection::<Document>("pos_terminals")
@@ -134,7 +126,7 @@ impl PosTerminal {
         let find_opts = FindOptions::builder()
             .projection(doc! {"default": 1, "voucherType": 1})
             .build();
-        let voucher_types = mongodb
+        let _voucher_types = mongodb
             .collection::<Document>("voucher_types")
             .find(doc! {}, find_opts)
             .await

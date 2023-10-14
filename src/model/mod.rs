@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::str::FromStr;
 
 use futures_util::StreamExt;
+use futures_util::TryStreamExt;
 use mongodb::{
     bson::{doc, to_bson, Bson, Document},
     Database,
@@ -31,11 +32,10 @@ mod pos_terminal;
 mod print_template;
 mod rack;
 mod sale_incharge;
+mod save_voucher;
 mod section;
 mod tds_nature_of_payment;
 mod unit;
-mod vendor_inventory_map;
-mod voucher;
 mod voucher_numbering;
 mod voucher_type;
 
@@ -57,11 +57,10 @@ pub use pos_terminal::PosTerminal;
 pub use print_template::PrintTemplate;
 pub use rack::Rack;
 pub use sale_incharge::SaleIncharge;
+pub use save_voucher::*;
 pub use section::Section;
 pub use tds_nature_of_payment::TdsNatureOfPayment;
 pub use unit::Unit;
-pub use vendor_inventory_map::{VendorBillMap, VendorItemMap};
-pub use voucher::Voucher;
 pub use voucher_numbering::VoucherNumbering;
 pub use voucher_type::VoucherType;
 
@@ -94,8 +93,8 @@ fn serialize_opt_tax_as_thing<S: Serializer>(
     }
 }
 
-fn serialize_tax_as_thing<S: Serializer>(val: &String, ser: S) -> Result<S::Ok, S::Error> {
-    let tax_id = match val.as_str() {
+fn serialize_tax_as_thing<S: Serializer>(val: &str, ser: S) -> Result<S::Ok, S::Error> {
+    let tax_id = match val {
         "gstna" => "gst_tax:not_applicable",
         "gstexempt" => "gst_tax:exempt",
         "gstngs" => "gst_tax:non_gst_supply",
@@ -113,30 +112,6 @@ fn serialize_tax_as_thing<S: Serializer>(val: &String, ser: S) -> Result<S::Ok, 
         _ => unreachable!(),
     };
     Thing::from_str(tax_id).unwrap().serialize(ser)
-}
-
-fn serialize_round_2<S: Serializer>(val: &f64, ser: S) -> Result<S::Ok, S::Error> {
-    let x = (val * 10_f64.powi(2)).round() / 10_f64.powi(2);
-    x.serialize(ser)
-}
-
-fn serialize_round_4<S: Serializer>(val: &f64, ser: S) -> Result<S::Ok, S::Error> {
-    let x = (val * 10_f64.powi(4)).round() / 10_f64.powi(4);
-    x.serialize(ser)
-}
-
-fn serialize_opt_round_2<S: Serializer>(val: &Option<f64>, ser: S) -> Result<S::Ok, S::Error> {
-    match val {
-        Some(num) => ((num * 10_f64.powi(2)).round() / 10_f64.powi(2)).serialize(ser),
-        _ => unreachable!(),
-    }
-}
-
-fn serialize_opt_round_4<S: Serializer>(val: &Option<f64>, ser: S) -> Result<S::Ok, S::Error> {
-    match val {
-        Some(num) => ((num * 10_f64.powi(4)).round() / 10_f64.powi(4)).serialize(ser),
-        _ => unreachable!(),
-    }
 }
 
 #[derive(Deserialize, Clone)]
@@ -213,22 +188,12 @@ pub trait Doc {
     fn get_array_thing(&self, key: &str, coll: &str) -> Option<HashSet<Thing>>;
     fn get_array_thing_from_str(&self, key: &str, coll: &str) -> Option<HashSet<Thing>>;
     fn get_oid_to_thing(&self, key: &str, coll: &str) -> Option<Thing>;
-    // fn get_surreal_datetime(&self, key: &str) -> Option<Datetime>;
-    // fn get_surreal_datetime_from_str(&self, key: &str) -> Option<Datetime>;
 }
 
 impl Doc for Document {
     fn get_string(&self, key: &str) -> Option<String> {
         self.get_str(key).map(|x| x.to_string()).ok()
     }
-    // fn get_surreal_datetime(&self, key: &str) -> Option<Datetime> {
-    //     self.get_datetime(key).ok().map(|x| x.to_chrono().into())
-    // }
-    // fn get_surreal_datetime_from_str(&self, key: &str) -> Option<Datetime> {
-    //     self.get_str(key)
-    //         .ok()
-    //         .map(|x| Datetime::try_from(x).unwrap())
-    // }
     fn _get_document(&self, key: &str) -> Option<Document> {
         self.get_document(key).ok().cloned()
     }
@@ -283,4 +248,287 @@ impl Doc for Document {
         }
         (!res.is_empty()).then_some(res)
     }
+}
+
+pub async fn duplicate_fix(db: &Database) {
+    for collection in [
+        "racks",
+        "accounts",
+        "inventories",
+        "branches",
+        "doctors",
+        "pharma_salts",
+        "units",
+        "voucher_types",
+        "sections",
+        "manufacturers",
+        "sale_incharges",
+    ] {
+        println!("{} duplicate fix start", collection);
+        let docs = db
+            .collection::<Document>(collection)
+            .aggregate(
+                vec![
+                    doc! {"$group": {
+                        "_id":"$validateName",
+                        "ids": { "$addToSet": "$_id" }
+                    }},
+                    doc! { "$project": { "ids": 1, "dup": { "$gt": [{ "$size": "$ids" }, 1] } } },
+                    doc! { "$match": { "dup": true }},
+                    doc! { "$project": { "ids": 1, "_id": 0 } },
+                ],
+                None,
+            )
+            .await
+            .unwrap()
+            .try_collect::<Vec<Document>>()
+            .await
+            .unwrap();
+        let mut updates = Vec::new();
+        for duplicates in docs {
+            for (idx, dup_id) in duplicates
+                .get_array("ids")
+                .unwrap_or(&vec![])
+                .iter()
+                .map(|x| x.as_object_id().unwrap_or_default())
+                .enumerate()
+            {
+                if idx != 0 {
+                    updates.push(doc! {
+                    "q": { "_id": dup_id },
+                    "u": [{"$set": {
+                        "name": {"$concat": ["$name", format!(" Dup{}", idx),]},
+                        "displayName": {"$concat": ["$displayName", format!(" Dup{} ", idx),]}}}]
+                    });
+                }
+            }
+        }
+        println!("count, {}", &updates.len());
+        if !updates.is_empty() {
+            let command = doc! {
+                "update": collection,
+                "updates": &updates
+            };
+            db.run_command(command, None).await.unwrap();
+        }
+        println!("{} duplicate fix end", collection);
+    }
+    println!("patients duplicate fix start");
+    let docs = db
+        .collection::<Document>("patients")
+        .aggregate(
+            vec![
+                doc! {"$group": {
+                    "_id": { "validateName": "$validateName", "customer": "$customer" },
+                    "ids": { "$addToSet": "$_id" }
+                }},
+                doc! { "$project": { "ids": 1, "dup": { "$gt": [{ "$size": "$ids" }, 1] } } },
+                doc! { "$match": { "dup": true }},
+                doc! { "$project": { "ids": 1, "_id": 0 } },
+            ],
+            None,
+        )
+        .await
+        .unwrap()
+        .try_collect::<Vec<Document>>()
+        .await
+        .unwrap();
+    let mut updates = Vec::new();
+    for duplicates in docs {
+        for (idx, dup_id) in duplicates
+            .get_array("ids")
+            .unwrap_or(&vec![])
+            .iter()
+            .map(|x| x.as_object_id().unwrap_or_default())
+            .enumerate()
+        {
+            if idx != 0 {
+                updates.push(doc! {"q": { "_id": dup_id }, "u": [{"$set": {"name": {"$concat": ["$name", format!(" Dup {}", idx),]}, "displayName": {"$concat": ["$displayName", format!(" Dup{} ", idx),]}} }]});
+            }
+        }
+    }
+    println!("count, {}", &updates.len());
+    if !updates.is_empty() {
+        let command = doc! {
+            "update": "patients",
+            "updates": &updates
+        };
+        db.run_command(command, None).await.unwrap();
+    }
+    println!("patients duplicate fix end");
+
+    let docs = db
+        .collection::<Document>("contacts")
+        .aggregate(
+            vec![
+                doc! {"$group": {
+                    "_id": { "validateName": "$validateName", "mob": "$contactInfo.mobile" },
+                    "ids": { "$addToSet": "$_id" }
+                }},
+                doc! { "$project": { "ids": 1, "dup": { "$gt": [{ "$size": "$ids" }, 1] } } },
+                doc! { "$match": { "dup": true }},
+                doc! { "$project": { "ids": 1, "_id": 0 } },
+            ],
+            None,
+        )
+        .await
+        .unwrap()
+        .try_collect::<Vec<Document>>()
+        .await
+        .unwrap();
+    let mut updates = Vec::new();
+    for duplicates in docs {
+        for (idx, dup_id) in duplicates
+            .get_array("ids")
+            .unwrap_or(&vec![])
+            .iter()
+            .map(|x| x.as_object_id().unwrap_or_default())
+            .enumerate()
+        {
+            if idx != 0 {
+                updates.push(doc! {"q": { "_id": dup_id }, "u": [{"$set": {"name": {"$concat": ["$name", format!(" Dup {}", idx),]}, "displayName": {"$concat": ["$displayName", format!(" Dup{} ", idx),]}} }]});
+            }
+        }
+    }
+    println!("count, {}", &updates.len());
+    if !updates.is_empty() {
+        let command = doc! {
+            "update": "contacts",
+            "updates": &updates
+        };
+        db.run_command(command, None).await.unwrap();
+    }
+    println!("contacts duplicate fix end");
+
+    println!("batches duplicate fix start");
+    let docs = db
+        .collection::<Document>("batches")
+        .aggregate(
+            vec![
+                doc! {"$group": {
+                    "_id": { "batchNo": "$batchNo", "inventory": "$inventory", "branch": "$branch" },
+                    "ids": { "$addToSet": "$_id" }
+                }},
+                doc! { "$project": { "ids": 1, "dup": { "$gt": [{ "$size": "$ids" }, 1] } } },
+                doc! { "$match": { "dup": true }},
+                doc! { "$project": { "ids": 1, "_id": 0 } },
+            ],
+            None,
+        )
+        .await
+        .unwrap()
+        .try_collect::<Vec<Document>>()
+        .await
+        .unwrap();
+    let mut updates = Vec::new();
+    for duplicates in docs {
+        for (idx, dup_id) in duplicates
+            .get_array("ids")
+            .unwrap_or(&vec![])
+            .iter()
+            .map(|x| x.as_object_id().unwrap_or_default())
+            .enumerate()
+        {
+            if idx != 0 {
+                updates.push(doc! {"q": { "_id": dup_id }, "u": [{"$set": {"batchNo": {"$concat": ["$batchNo", format!("DUP{}", idx),]}} }]});
+            }
+        }
+    }
+    println!("count, {}", &updates.len());
+    if !updates.is_empty() {
+        let command = doc! {
+            "update": "batches",
+            "updates": &updates
+        };
+        db.run_command(command, None).await.unwrap();
+    }
+    println!("batches duplicate fix end");
+
+    println!("member duplicate fix start");
+    let docs = db
+        .collection::<Document>("members")
+        .aggregate(
+            vec![
+                doc! {"$group": {
+                    "_id": "$username",
+                    "ids": { "$addToSet": "$_id" }
+                }},
+                doc! { "$project": { "ids": 1, "dup": { "$gt": [{ "$size": "$ids" }, 1] } } },
+                doc! { "$match": { "dup": true }},
+                doc! { "$project": { "ids": 1, "_id": 0 } },
+            ],
+            None,
+        )
+        .await
+        .unwrap()
+        .try_collect::<Vec<Document>>()
+        .await
+        .unwrap();
+    let mut updates = Vec::new();
+    for duplicates in docs {
+        for (idx, dup_id) in duplicates
+            .get_array("ids")
+            .unwrap_or(&vec![])
+            .iter()
+            .map(|x| x.as_object_id().unwrap_or_default())
+            .enumerate()
+        {
+            if idx != 0 {
+                updates.push(doc! {"q": { "_id": dup_id }, "u": [{"$set": {"username": {"$concat": ["$username", format!("dup{}", idx)]}} }]});
+            }
+        }
+    }
+    println!("count, {}", &updates.len());
+    if !updates.is_empty() {
+        let command = doc! {
+            "update": "members",
+            "updates": &updates
+        };
+        db.run_command(command, None).await.unwrap();
+    }
+    println!("members duplicate fix end");
+
+    println!("print_templates duplicate fix start");
+    let docs = db
+        .collection::<Document>("print_templates")
+        .aggregate(
+            vec![
+                doc! {"$group": {
+                    "_id": "$name",
+                    "ids": { "$addToSet": "$_id" }
+                }},
+                doc! { "$project": { "ids": 1, "dup": { "$gt": [{ "$size": "$ids" }, 1] } } },
+                doc! { "$match": { "dup": true }},
+                doc! { "$project": { "ids": 1, "_id": 0 } },
+            ],
+            None,
+        )
+        .await
+        .unwrap()
+        .try_collect::<Vec<Document>>()
+        .await
+        .unwrap();
+    let mut updates = Vec::new();
+    for duplicates in docs {
+        for (idx, dup_id) in duplicates
+            .get_array("ids")
+            .unwrap_or(&vec![])
+            .iter()
+            .map(|x| x.as_object_id().unwrap_or_default())
+            .enumerate()
+        {
+            if idx != 0 {
+                updates.push(doc! {"q": { "_id": dup_id }, "u": [{"$set": {"name": {"$concat": ["$name", format!("dup{}", idx)]}} }]});
+            }
+        }
+    }
+    println!("count, {}", &updates.len());
+    if !updates.is_empty() {
+        let command = doc! {
+            "update": "print_templates",
+            "updates": &updates
+        };
+        db.run_command(command, None).await.unwrap();
+    }
+    println!("print_templates duplicate fix end");
 }

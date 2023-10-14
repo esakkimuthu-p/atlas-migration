@@ -1,5 +1,3 @@
-use serde_json::{json, Value};
-
 use super::{
     doc, Created, Database, Doc, Document, HashSet, Serialize, StreamExt, Surreal, SurrealClient,
     Thing,
@@ -23,14 +21,6 @@ pub struct VoucherType {
 
 impl VoucherType {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("voucher_type INDEX start");
-        surrealdb
-            .query("DEFINE INDEX val_name ON TABLE voucher_type COLUMNS val_name")
-            .await
-            .unwrap()
-            .take::<Option<()>>(0)
-            .unwrap();
-        println!("voucher_type INDEX end");
         println!("voucher_type download start");
         let mut cur = mongodb
             .collection::<Document>("voucher_types")
@@ -53,13 +43,6 @@ impl VoucherType {
                 .unwrap_or(doc! {});
             let configuration = match d.get_str("voucherType").unwrap_or_default() {
                 "SALE" => {
-                    let allowed_credit_accounts = config_doc
-                        .get_array_thing("allowedCreditAccounts", "account")
-                        .map(|x| {
-                            x.into_iter()
-                                .map(|y| y.to_string())
-                                .collect::<Vec<String>>()
-                        });
                     let config = doc! {
                         "cash_register_enabled" : config_doc.get_bool("cashRegisterEnabled").unwrap_or_default(),
                         "warehouse_enabled" : config_doc.get_bool("warehouseEnabled").unwrap_or_default(),
@@ -344,7 +327,6 @@ impl VoucherType {
                 }
                 _ => doc! {},
             };
-            println!("{:?}, {:?}", configuration, id);
             let _created: Created = surrealdb
                 .create("voucher_type")
                 .content(Self {

@@ -10,20 +10,6 @@ pub struct SaleIncharge {
 
 impl SaleIncharge {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("sale_incharge INDEX start");
-        surrealdb
-            .query("DEFINE INDEX val_name ON TABLE sale_incharge COLUMNS val_name")
-            .await
-            .unwrap()
-            .take::<Option<()>>(0)
-            .unwrap();
-        surrealdb
-            .query("DEFINE INDEX code ON TABLE sale_incharge COLUMNS code")
-            .await
-            .unwrap()
-            .take::<Option<()>>(0)
-            .unwrap();
-        println!("sale_incharge INDEX end");
         println!("sale_incharge download start");
         let mut cur = mongodb
             .collection::<Document>("sale_incharges")

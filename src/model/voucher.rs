@@ -96,28 +96,28 @@ fn get_alt_accounts(
 impl Voucher {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
         println!("voucher INDEX start");
-        surrealdb
-            .query("DEFINE INDEX br ON TABLE voucher COLUMNS branch")
-            .await
-            .unwrap()
-            .take::<Option<()>>(0)
-            .unwrap();
-        surrealdb
-            .query("DEFINE INDEX base_voucher ON TABLE voucher COLUMNS base_voucher_type")
-            .await
-            .unwrap()
-            .take::<Option<()>>(0)
-            .unwrap();
-        surrealdb
-            .query("DEFINE INDEX date ON TABLE voucher COLUMNS date")
-            .await
-            .unwrap()
-            .take::<Option<()>>(0)
-            .unwrap();
+        // surrealdb
+        //     .query("DEFINE INDEX br ON TABLE voucher COLUMNS branch")
+        //     .await
+        //     .unwrap()
+        //     .take::<Option<()>>(0)
+        //     .unwrap();
+        // surrealdb
+        //     .query("DEFINE INDEX base_voucher ON TABLE voucher COLUMNS base_voucher_type")
+        //     .await
+        //     .unwrap()
+        //     .take::<Option<()>>(0)
+        //     .unwrap();
+        // surrealdb
+        //     .query("DEFINE INDEX date ON TABLE voucher COLUMNS date")
+        //     .await
+        //     .unwrap()
+        //     .take::<Option<()>>(0)
+        //     .unwrap();
         println!("voucher INDEX end");
         println!("voucher download start");
         let acc_find_opts = FindOptions::builder()
-            .projection(doc! {"displayName": 1, "defaultName": 1})
+            .projection(doc! {"defaultName": 1})
             .build();
         let accounts = mongodb
             .collection::<Document>("accounts")
@@ -127,9 +127,7 @@ impl Voucher {
             .try_collect::<Vec<Document>>()
             .await
             .unwrap();
-        let inv_find_opts = FindOptions::builder()
-            .projection(doc! { "displayName": 1, "sectionId": 1, "sectionName": 1, "manufacturerId":1, "manufacturerName": 1 })
-            .build();
+        let inv_find_opts = FindOptions::builder().projection(doc! { "_id": 1 }).build();
         let inventories = mongodb
             .collection::<Document>("inventories")
             .find(doc! {}, inv_find_opts)

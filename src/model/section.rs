@@ -14,15 +14,6 @@ pub struct Section {
 
 impl Section {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("section INDEX start");
-        surrealdb
-            .query("DEFINE INDEX val_name ON TABLE section COLUMNS val_name")
-            .await
-            .unwrap()
-            .take::<Option<()>>(0)
-            .unwrap();
-        println!("section INDEX end");
-        println!("section download start");
         let find_opts = FindOptions::builder().sort(doc! {"_id": 1}).build();
         let mut cur = mongodb
             .collection::<Document>("sections")

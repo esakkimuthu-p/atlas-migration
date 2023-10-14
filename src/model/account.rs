@@ -34,20 +34,6 @@ pub struct Account {
 
 impl Account {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("account INDEX start");
-        surrealdb
-            .query("DEFINE INDEX account_type ON TABLE account COLUMNS account_type")
-            .await
-            .unwrap()
-            .take::<Option<()>>(0)
-            .unwrap();
-        surrealdb
-            .query("DEFINE INDEX val_name ON TABLE account COLUMNS val_name")
-            .await
-            .unwrap()
-            .take::<Option<()>>(0)
-            .unwrap();
-        println!("account INDEX end");
         println!("account download start");
         let find_opts = FindOptions::builder().sort(doc! {"_id": 1}).build();
         let mut cur = mongodb
