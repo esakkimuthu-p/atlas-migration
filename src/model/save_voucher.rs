@@ -1,6 +1,6 @@
 use super::{
-    doc, serialize_opt_tax_as_thing, AmountInfo, Database, Doc, Document, GstInfo, InventoryCess,
-    Serialize, StreamExt, Surreal, SurrealClient, Thing,
+    doc, serialize_opt_tax_as_thing, AmountInfo, Database, Doc, Document, GstInfo, Id,
+    InventoryCess, Serialize, StreamExt, Surreal, SurrealClient, Thing,
 };
 use futures_util::TryStreamExt;
 use mongodb::{bson::from_document, options::FindOptions};
@@ -443,53 +443,205 @@ impl VoucherApiInput {
                 }
             }
             let mut inv_txns = Vec::new();
-            if let Some(inv_trns) = d.get_array_document("invTrns") {
-                for (sno, inv_trn) in inv_trns.iter().enumerate() {
-                    let nlc = if collection == "stock_transfers"
-                        && d.get_string("transferType") == Some("TARGET".to_string())
-                    {
-                        Some(
-                            inv_trn._get_f64("taxableAmount").unwrap_or_default()
-                                / ((inv_trn._get_f64("qty").unwrap_or_default()
-                                    + inv_trn._get_f64("freeQty").unwrap_or_default())
-                                    * inv_trn._get_f64("unitConv").unwrap()),
-                        )
-                    } else {
-                        None
-                    };
-                    let qty = if d.get_string("transferType") == Some("SOURCE".to_string()) {
-                        inv_trn._get_f64("qty").map(|x| x.abs() * -1.0)
-                    } else {
-                        inv_trn._get_f64("qty")
-                    };
-                    inv_txns.push(VoucherInvTransactionApiInput {
-                        sno: sno + 1,
-                        id: inv_trn.get_oid_to_thing("_id", "inv_txn").unwrap(),
-                        inventory: inv_trn.get_oid_to_thing("inventory", "inventory").unwrap(),
-                        unit_conv: inv_trn._get_f64("unitConv").unwrap(),
-                        unit_precision: inv_trn._get_f64("unitPrecision").unwrap() as u8,
-                        rate: inv_trn._get_f64("rate"),
-                        cost: inv_trn._get_f64("cost"),
-                        qty,
-                        free_qty: None,
-                        gst_tax: None,
-                        s_inc: None,
-                        disc: None,
-                        batch: inv_trn.get_oid_to_thing("batch", "batch").unwrap(),
-                        cess: None,
-                        tax_inc: None,
-                        nlc,
-                        taxable_amount: None,
-                        cgst_amount: None,
-                        sgst_amount: None,
-                        igst_amount: None,
-                        cess_amount: None,
-                        asset_amount: inv_trn._get_f64("assetAmount"),
-                        sale_taxable_amount: None,
-                        sale_tax_amount: None,
-                    });
+            match collection {
+                "stock_adjustments" | "stock_transfers" => {
+                    if let Some(inv_trns) = d.get_array_document("invTrns") {
+                        for (sno, inv_trn) in inv_trns.iter().enumerate() {
+                            let nlc = if collection == "stock_transfers"
+                                && d.get_string("transferType") == Some("TARGET".to_string())
+                            {
+                                Some(
+                                    inv_trn._get_f64("assetAmount").unwrap_or_default()
+                                        / (inv_trn._get_f64("qty").unwrap_or_default()
+                                            * inv_trn._get_f64("unitConv").unwrap()),
+                                )
+                            } else {
+                                None
+                            };
+                            let qty = if d.get_string("transferType") == Some("SOURCE".to_string())
+                            {
+                                inv_trn._get_f64("qty").map(|x| x.abs() * -1.0)
+                            } else {
+                                inv_trn._get_f64("qty").map(|x| x.abs())
+                            };
+                            inv_txns.push(VoucherInvTransactionApiInput {
+                                sno: sno + 1,
+                                id: inv_trn.get_oid_to_thing("_id", "inv_txn").unwrap(),
+                                inventory: inv_trn
+                                    .get_oid_to_thing("inventory", "inventory")
+                                    .unwrap(),
+                                unit_conv: inv_trn._get_f64("unitConv").unwrap(),
+                                unit_precision: inv_trn._get_f64("unitPrecision").unwrap() as u8,
+                                rate: inv_trn._get_f64("rate"),
+                                cost: inv_trn._get_f64("cost"),
+                                qty,
+                                free_qty: None,
+                                gst_tax: None,
+                                s_inc: None,
+                                disc: None,
+                                batch: inv_trn.get_oid_to_thing("batch", "batch").unwrap(),
+                                cess: None,
+                                tax_inc: None,
+                                nlc,
+                                taxable_amount: None,
+                                cgst_amount: None,
+                                sgst_amount: None,
+                                igst_amount: None,
+                                cess_amount: None,
+                                asset_amount: inv_trn._get_f64("assetAmount"),
+                                sale_taxable_amount: None,
+                                sale_tax_amount: None,
+                            });
+                        }
+                    }
                 }
+                "manufacturing_journals" => {
+                    if let Some(inv_trn) = d._get_document("invTrn") {
+                        let components = inv_trn.get_array_document("components").unwrap_or(vec![]);
+                        let mut outter_cost = 0.0;
+                        for (sno, comp) in components.iter().enumerate() {
+                            outter_cost += inv_trn._get_f64("cost").unwrap_or_default()
+                                / inv_trn._get_f64("unitConv").unwrap();
+                            inv_txns.push(VoucherInvTransactionApiInput {
+                                sno: sno + 1,
+                                id: comp.get_oid_to_thing("_id", "inv_txn").unwrap(),
+                                inventory: comp.get_oid_to_thing("inventory", "inventory").unwrap(),
+                                unit_conv: comp._get_f64("unitConv").unwrap(),
+                                unit_precision: comp._get_f64("unitPrecision").unwrap() as u8,
+                                rate: None,
+                                cost: comp._get_f64("cost"),
+                                qty: comp._get_f64("qty").map(|x| x.abs() * -1.0),
+                                free_qty: None,
+                                gst_tax: None,
+                                s_inc: None,
+                                disc: None,
+                                batch: comp.get_oid_to_thing("batch", "batch").unwrap(),
+                                cess: None,
+                                tax_inc: None,
+                                nlc: None,
+                                taxable_amount: None,
+                                cgst_amount: None,
+                                sgst_amount: None,
+                                igst_amount: None,
+                                cess_amount: None,
+                                asset_amount: Some(
+                                    comp._get_f64("cost").unwrap_or_default()
+                                        * comp._get_f64("qty").unwrap_or_default(),
+                                ),
+                                sale_taxable_amount: None,
+                                sale_tax_amount: None,
+                            });
+                        }
+                        inv_txns.push(VoucherInvTransactionApiInput {
+                            sno: components.len() + 1,
+                            id: Thing {
+                                id: Id::rand(),
+                                tb: "inv_txn".to_string(),
+                            },
+                            inventory: inv_trn.get_oid_to_thing("inventory", "inventory").unwrap(),
+                            unit_conv: inv_trn._get_f64("unitConv").unwrap(),
+                            unit_precision: inv_trn._get_f64("unitPrecision").unwrap() as u8,
+                            rate: None,
+                            cost: Some(outter_cost * inv_trn._get_f64("unitConv").unwrap()),
+                            qty: inv_trn._get_f64("qty").map(|x| x.abs()),
+                            free_qty: None,
+                            gst_tax: None,
+                            s_inc: None,
+                            disc: None,
+                            batch: inv_trn.get_oid_to_thing("batch", "batch").unwrap(),
+                            cess: None,
+                            tax_inc: None,
+                            nlc: Some(outter_cost / inv_trn._get_f64("unitConv").unwrap()),
+                            taxable_amount: None,
+                            cgst_amount: None,
+                            sgst_amount: None,
+                            igst_amount: None,
+                            cess_amount: None,
+                            asset_amount: Some(
+                                outter_cost
+                                    * inv_trn._get_f64("unitConv").unwrap()
+                                    * inv_trn._get_f64("qty").unwrap_or_default(),
+                            ),
+                            sale_taxable_amount: None,
+                            sale_tax_amount: None,
+                        });
+                    }
+                }
+                "material_conversions" => {
+                    if let Some(inv_trns) = d.get_array_document("invTrns") {
+                        let mut sr_no: usize = 0;
+                        for inv_trn in inv_trns {
+                            let mut source_qty: f64 = 0.0;
+                            for target in inv_trn.get_array_document("targets").unwrap_or(vec![]) {
+                                source_qty += target._get_f64("sourceQty").unwrap_or_default();
+                                sr_no += 1;
+                                inv_txns.push(VoucherInvTransactionApiInput {
+                                    sno: sr_no,
+                                    id: target.get_oid_to_thing("_id", "inv_txn").unwrap(),
+                                    inventory: target
+                                        .get_oid_to_thing("inventory", "inventory")
+                                        .unwrap(),
+                                    unit_conv: target._get_f64("unitConv").unwrap(),
+                                    unit_precision: target._get_f64("unitPrecision").unwrap() as u8,
+                                    rate: None,
+                                    cost: target._get_f64("cost"),
+                                    qty: target._get_f64("qty").map(|x| x.abs()),
+                                    free_qty: None,
+                                    gst_tax: None,
+                                    s_inc: None,
+                                    disc: None,
+                                    batch: target.get_oid_to_thing("batch", "batch").unwrap(),
+                                    cess: None,
+                                    tax_inc: None,
+                                    nlc: Some(
+                                        target._get_f64("cost").unwrap_or_default()
+                                            / target._get_f64("qty").unwrap_or_default(),
+                                    ),
+                                    taxable_amount: None,
+                                    cgst_amount: None,
+                                    sgst_amount: None,
+                                    igst_amount: None,
+                                    cess_amount: None,
+                                    asset_amount: target._get_f64("assetAmount"),
+                                    sale_taxable_amount: None,
+                                    sale_tax_amount: None,
+                                });
+                            }
+                            sr_no += 1;
+                            inv_txns.push(VoucherInvTransactionApiInput {
+                                sno: sr_no,
+                                id: inv_trn.get_oid_to_thing("_id", "inv_txn").unwrap(),
+                                inventory: inv_trn
+                                    .get_oid_to_thing("inventory", "inventory")
+                                    .unwrap(),
+                                unit_conv: inv_trn._get_f64("unitConv").unwrap(),
+                                unit_precision: inv_trn._get_f64("unitPrecision").unwrap() as u8,
+                                rate: None,
+                                cost: inv_trn._get_f64("cost"),
+                                qty: Some(source_qty),
+                                free_qty: None,
+                                gst_tax: None,
+                                s_inc: None,
+                                disc: None,
+                                batch: inv_trn.get_oid_to_thing("batch", "batch").unwrap(),
+                                cess: None,
+                                tax_inc: None,
+                                nlc: None,
+                                taxable_amount: None,
+                                cgst_amount: None,
+                                sgst_amount: None,
+                                igst_amount: None,
+                                cess_amount: None,
+                                asset_amount: inv_trn._get_f64("assetAmount"),
+                                sale_taxable_amount: None,
+                                sale_tax_amount: None,
+                            });
+                        }
+                    }
+                }
+                _ => panic!("internal err"),
             }
+
             let input_data = Self {
                 id: d.get_oid_to_thing("_id", "voucher").unwrap(),
                 date: d.get_string("date").unwrap(),

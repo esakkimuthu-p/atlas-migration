@@ -60,4 +60,6 @@ async fn main() {
     VoucherApiInput::create(&surrealdb, &mongodb).await;
     VoucherApiInput::create_stock_journal(&surrealdb, &mongodb, "stock_transfers").await;
     VoucherApiInput::create_stock_journal(&surrealdb, &mongodb, "stock_adjustments").await;
+    VoucherApiInput::create_stock_journal(&surrealdb, &mongodb, "manufacturing_journals").await;
+    VoucherApiInput::create_stock_journal(&surrealdb, &mongodb, "material_conversions").await;
 }
