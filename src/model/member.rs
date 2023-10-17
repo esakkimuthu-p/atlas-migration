@@ -26,7 +26,6 @@ pub struct Member {
 
 impl Member {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("member download start");
         let mut cur = mongodb
             .collection::<Document>("members")
             .find(doc! {}, None)
@@ -34,15 +33,17 @@ impl Member {
             .unwrap();
         while let Some(Ok(d)) = cur.next().await {
             let mut id = d.get_oid_to_thing("_id", "member").unwrap();
+            let mut name = d.get_string("username").unwrap().to_lowercase();
             if d.get_bool("isRoot").unwrap_or_default() {
                 id = ("member".to_string(), "admin".to_string()).into();
+                name = "admin".to_string();
             }
             let _created: Created = surrealdb
                 .create("member")
                 .content(Self {
                     id,
-                    name: d.get_string("username").unwrap(),
-                    pass: d.get_string("password").unwrap(),
+                    name: name.clone(),
+                    pass: "1".to_string(),
                     remote_access: d.get_bool("remoteAccess").unwrap_or_default(),
                     is_act: d.get_bool("isAccountant").unwrap_or_default(),
                     is_root: d.get_bool("isRoot").unwrap_or_default(),

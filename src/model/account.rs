@@ -34,7 +34,6 @@ pub struct Account {
 
 impl Account {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("account download start");
         let find_opts = FindOptions::builder().sort(doc! {"_id": 1}).build();
         let mut cur = mongodb
             .collection::<Document>("accounts")

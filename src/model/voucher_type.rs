@@ -21,7 +21,6 @@ pub struct VoucherType {
 
 impl VoucherType {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("voucher_type download start");
         let mut cur = mongodb
             .collection::<Document>("voucher_types")
             .find(doc! {}, None)
@@ -66,33 +65,6 @@ impl VoucherType {
                         "pos_mode" : config_doc.get_bool("posMode").unwrap_or_default(),
                         "sale_mode" : config_doc.get_string("saleMode").unwrap_or("BOTH".to_string()),
                     };
-                    // if let Some(x) = config_doc._get_document("inventory") {
-                    //     let mut inner_doc = doc! {"enable_silent_print_mode": x.get_bool("enableSilentPrintMode").unwrap_or_default()};
-                    //     if let Some(y) =
-                    //         x.get_oid_to_thing("defaultPrintTemplate", "print_template")
-                    //     {
-                    //         inner_doc.insert("default_print_template", y.to_string());
-                    //     }
-                    //     config.insert("inventory", inner_doc);
-                    // }
-                    // if let Some(x) = config_doc._get_document("account") {
-                    //     let mut inner_doc = doc! {"enable_silent_print_mode": x.get_bool("enableSilentPrintMode").unwrap_or_default()};
-                    //     if let Some(y) =
-                    //         x.get_oid_to_thing("defaultPrintTemplate", "print_template")
-                    //     {
-                    //         inner_doc.insert("default_print_template", y.to_string());
-                    //     }
-                    //     config.insert("account", inner_doc);
-                    // }
-                    // if let Some(x) = config_doc._get_document("gst") {
-                    //     let mut inner_doc = doc! {"enable_silent_print_mode": x.get_bool("enableSilentPrintMode").unwrap_or_default()};
-                    //     if let Some(y) =
-                    //         x.get_oid_to_thing("defaultPrintTemplate", "print_template")
-                    //     {
-                    //         inner_doc.insert("default_print_template", y.to_string());
-                    //     }
-                    //     config.insert("gst", inner_doc);
-                    // }
                     doc! {"sale": config}
                 }
                 "CREDIT_NOTE" => {
@@ -122,33 +94,7 @@ impl VoucherType {
                         "pos_mode" : config_doc.get_bool("posMode").unwrap_or_default(),
                         "allowed_credit_accounts": allowed_credit_accounts.unwrap_or_default(),
                     };
-                    // if let Some(x) = config_doc._get_document("inventory") {
-                    //     let mut inner_doc = doc! {"enable_silent_print_mode": x.get_bool("enableSilentPrintMode").unwrap_or_default()};
-                    //     if let Some(y) =
-                    //         x.get_oid_to_thing("defaultPrintTemplate", "print_template")
-                    //     {
-                    //         inner_doc.insert("default_print_template", y.to_string());
-                    //     }
-                    //     config.insert("inventory", inner_doc);
-                    // }
-                    // if let Some(x) = config_doc._get_document("account") {
-                    //     let mut inner_doc = doc! {"enable_silent_print_mode": x.get_bool("enableSilentPrintMode").unwrap_or_default()};
-                    //     if let Some(y) =
-                    //         x.get_oid_to_thing("defaultPrintTemplate", "print_template")
-                    //     {
-                    //         inner_doc.insert("default_print_template", y);
-                    //     }
-                    //     config.insert("account", inner_doc);
-                    // }
-                    // if let Some(x) = config_doc._get_document("gst") {
-                    //     let mut inner_doc = doc! {"enable_silent_print_mode": x.get_bool("enableSilentPrintMode").unwrap_or_default()};
-                    //     if let Some(y) =
-                    //         x.get_oid_to_thing("defaultPrintTemplate", "print_template")
-                    //     {
-                    //         inner_doc.insert("default_print_template", y.to_string());
-                    //     }
-                    //     config.insert("gst", inner_doc);
-                    // }
+
                     doc! {"credit_note": config}
                 }
                 "SALE_QUOTATION" => {
@@ -163,12 +109,6 @@ impl VoucherType {
                         "enable_exp" : config_doc.get_bool("enableExp").unwrap_or_default(),
                         "enable_silent_print_mode" : config_doc.get_bool("enableSilentPrintMode").unwrap_or_default(),
                     };
-                    // if let Some(y) =
-                    //     config_doc.get_oid_to_thing("defaultPrintTemplate", "print_template")
-                    // {
-                    //     config.insert("default_print_template", y.to_string());
-                    // }
-
                     doc! {"sale_quotation": config}
                 }
                 "PURCHASE" => {
@@ -181,33 +121,6 @@ impl VoucherType {
                         "allow_credit_vendor" : config_doc.get_bool("allowCreditVendor").unwrap_or_default(),
                         "barcode_enabled" : config_doc.get_bool("barcodeEnabled").unwrap_or_default(),
                     };
-                    // if let Some(x) = config_doc._get_document("inventory") {
-                    //     let mut inner_doc = doc! {"enable_silent_print_mode": x.get_bool("enableSilentPrintMode").unwrap_or_default()};
-                    //     if let Some(y) =
-                    //         x.get_oid_to_thing("defaultPrintTemplate", "print_template")
-                    //     {
-                    //         inner_doc.insert("default_print_template", y.to_string());
-                    //     }
-                    //     config.insert("inventory", inner_doc);
-                    // }
-                    // if let Some(x) = config_doc._get_document("account") {
-                    //     let mut inner_doc = doc! {"enable_silent_print_mode": x.get_bool("enableSilentPrintMode").unwrap_or_default()};
-                    //     if let Some(y) =
-                    //         x.get_oid_to_thing("defaultPrintTemplate", "print_template")
-                    //     {
-                    //         inner_doc.insert("default_print_template", y.to_string());
-                    //     }
-                    //     config.insert("account", inner_doc);
-                    // }
-                    // if let Some(x) = config_doc._get_document("gst") {
-                    //     let mut inner_doc = doc! {"enable_silent_print_mode": x.get_bool("enableSilentPrintMode").unwrap_or_default()};
-                    //     if let Some(y) =
-                    //         x.get_oid_to_thing("defaultPrintTemplate", "print_template")
-                    //     {
-                    //         inner_doc.insert("default_print_template", y.to_string());
-                    //     }
-                    //     config.insert("gst", inner_doc);
-                    // }
                     doc! {"purchase": config}
                 }
                 "DEBIT_NOTE" => {
@@ -222,33 +135,6 @@ impl VoucherType {
                         "barcode_enabled" : config_doc.get_bool("barcodeEnabled").unwrap_or_default(),
                         "enable_exp" : config_doc.get_bool("enableExp").unwrap_or_default(),
                     };
-                    // if let Some(x) = config_doc._get_document("inventory") {
-                    //     let mut inner_doc = doc! {"enable_silent_print_mode": x.get_bool("enableSilentPrintMode").unwrap_or_default()};
-                    //     if let Some(y) =
-                    //         x.get_oid_to_thing("defaultPrintTemplate", "print_template")
-                    //     {
-                    //         inner_doc.insert("default_print_template", y.to_string());
-                    //     }
-                    //     config.insert("inventory", inner_doc);
-                    // }
-                    // if let Some(x) = config_doc._get_document("account") {
-                    //     let mut inner_doc = doc! {"enable_silent_print_mode": x.get_bool("enableSilentPrintMode").unwrap_or_default()};
-                    //     if let Some(y) =
-                    //         x.get_oid_to_thing("defaultPrintTemplate", "print_template")
-                    //     {
-                    //         inner_doc.insert("default_print_template", y.to_string());
-                    //     }
-                    //     config.insert("account", inner_doc);
-                    // }
-                    // if let Some(x) = config_doc._get_document("gst") {
-                    //     let mut inner_doc = doc! {"enable_silent_print_mode": x.get_bool("enableSilentPrintMode").unwrap_or_default()};
-                    //     if let Some(y) =
-                    //         x.get_oid_to_thing("defaultPrintTemplate", "print_template")
-                    //     {
-                    //         inner_doc.insert("default_print_template", y.to_string());
-                    //     }
-                    //     config.insert("gst", inner_doc);
-                    // }
                     doc! {"debit_note": config}
                 }
                 "CONTRA" => {
@@ -279,17 +165,12 @@ impl VoucherType {
                     }}
                 }
                 "STOCK_ADJUSTMENT" => {
-                    let mut config = doc! {
+                    let config = doc! {
                         "barcode_enabled" : config_doc.get_bool("barcodeEnabled").unwrap_or_default(),
                         "print_after_save" : config_doc.get_bool("printAfterSave").unwrap_or_default(),
                         "enable_silent_print_mode" : config_doc.get_bool("enableSilentPrintMode").unwrap_or_default(),
                         "enable_exp" : config_doc.get_bool("enableExp").unwrap_or_default(),
                     };
-                    if let Some(y) =
-                        config_doc.get_oid_to_thing("defaultPrintTemplate", "print_template")
-                    {
-                        config.insert("default_print_template", y.to_string());
-                    }
                     doc! {"stock_adjustment":config}
                 }
                 "STOCK_TRANSFER" => {
@@ -299,11 +180,6 @@ impl VoucherType {
                         "enable_silent_print_mode" : config_doc.get_bool("enableSilentPrintMode").unwrap_or_default(),
                         "enable_exp" : config_doc.get_bool("enableExp").unwrap_or_default(),
                     };
-                    // if let Some(y) =
-                    //     config_doc.get_oid_to_thing("defaultPrintTemplate", "print_template")
-                    // {
-                    //     config.insert("default_print_template", y.to_string());
-                    // }
                     doc! {"stock_transfer":config}
                 }
                 "MATERIAL_CONVERSION" => {
@@ -313,11 +189,6 @@ impl VoucherType {
                         "enable_silent_print_mode" : config_doc.get_bool("enableSilentPrintMode").unwrap_or_default(),
                         "enable_exp" : config_doc.get_bool("enableExp").unwrap_or_default(),
                     };
-                    // if let Some(y) =
-                    //     config_doc.get_oid_to_thing("defaultPrintTemplate", "print_template")
-                    // {
-                    //     config.insert("default_print_template", y.to_string());
-                    // }
                     doc! {"material_conversion":config}
                 }
                 "MANUFACTURING_JOURNAL" => {
@@ -350,6 +221,6 @@ impl VoucherType {
                 .cloned()
                 .unwrap();
         }
-        println!("member download end");
+        println!("voucher_type download end");
     }
 }

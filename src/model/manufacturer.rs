@@ -16,7 +16,6 @@ pub struct Manufacturer {
 
 impl Manufacturer {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("manufacturer download start");
         let mut cur = mongodb
             .collection::<Document>("manufacturers")
             .find(doc! {}, None)

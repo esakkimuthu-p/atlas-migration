@@ -10,7 +10,6 @@ pub struct PharmaSalt {
 
 impl PharmaSalt {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("pharma_salt download start");
         let mut cur = mongodb
             .collection::<Document>("pharma_salts")
             .find(doc! {}, None)

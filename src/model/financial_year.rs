@@ -10,7 +10,6 @@ pub struct FinancialYear {
 
 impl FinancialYear {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("financial_year download start");
         let mut cur = mongodb
             .collection::<Document>("financial_years")
             .find(doc! {}, None)

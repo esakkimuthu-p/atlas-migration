@@ -17,15 +17,6 @@ pub struct TdsNatureOfPayment {
 
 impl TdsNatureOfPayment {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("tds_nature_of_payment INDEX start");
-        surrealdb
-            .query("DEFINE INDEX val_name ON TABLE tds_nature_of_payment COLUMNS val_name")
-            .await
-            .unwrap()
-            .take::<Option<()>>(0)
-            .unwrap();
-        println!("tds_nature_of_payment INDEX end");
-        println!("tds_nature_of_payment download start");
         let mut cur = mongodb
             .collection::<Document>("tds_nature_of_payments")
             .find(doc! {}, None)

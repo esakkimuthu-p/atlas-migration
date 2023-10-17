@@ -117,7 +117,6 @@ pub struct PosTerminal {
 
 impl PosTerminal {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("pos_terminal download start");
         let mut cur = mongodb
             .collection::<Document>("pos_terminals")
             .find(doc! {}, None)

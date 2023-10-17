@@ -94,8 +94,6 @@ pub struct Inventory {
 
 impl Inventory {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("inventory download start");
-
         let find_opts = FindOptions::builder()
             .projection(doc! {"inventoryHead": 1})
             .build();
@@ -107,9 +105,9 @@ impl Inventory {
             .try_collect::<Vec<Document>>()
             .await
             .unwrap();
-
         let find_opts = FindOptions::builder()
             .projection(doc! {"createdAt": 0, "updatedAt": 0, "createdBy": 0, "updatedBy": 0})
+            .sort(doc! {"_id": 1})
             .build();
         let mut cur = mongodb
             .collection::<Document>("inventories")

@@ -19,15 +19,6 @@ pub struct DiscountCode {
 
 impl DiscountCode {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("discount_code INDEX start");
-        surrealdb
-            .query("DEFINE INDEX val_name ON TABLE discount_code COLUMNS val_name")
-            .await
-            .unwrap()
-            .take::<Option<()>>(0)
-            .unwrap();
-        println!("discount_code INDEX end");
-        println!("discount_code download start");
         let mut cur = mongodb
             .collection::<Document>("discount_codes")
             .find(doc! {}, None)

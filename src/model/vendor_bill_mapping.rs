@@ -1,27 +1,26 @@
 use super::{
     doc, Created, Database, Doc, Document, Serialize, StreamExt, Surreal, SurrealClient, Thing,
 };
+
 #[derive(Debug, Serialize)]
-pub struct SaleIncharge {
-    pub id: Thing,
-    pub name: String,
-    pub code: String,
+pub struct VendorBillMapping {
+    pub vendor: Thing,
+    pub mapping: String,
 }
 
-impl SaleIncharge {
+impl VendorBillMapping {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
         let mut cur = mongodb
-            .collection::<Document>("sale_incharges")
+            .collection::<Document>("vendor_bill_mappings")
             .find(doc! {}, None)
             .await
             .unwrap();
         while let Some(Ok(d)) = cur.next().await {
             let _created: Created = surrealdb
-                .create("sale_incharge")
+                .create("vendor_bill_mapping")
                 .content(Self {
-                    id: d.get_oid_to_thing("_id", "sale_incharge").unwrap(),
-                    name: d.get_string("name").unwrap(),
-                    code: d.get_string("code").unwrap(),
+                    vendor: d.get_oid_to_thing("vendor", "contact").unwrap(),
+                    mapping: d.get_string("mapping").unwrap(),
                 })
                 .await
                 .unwrap()
@@ -29,6 +28,6 @@ impl SaleIncharge {
                 .cloned()
                 .unwrap();
         }
-        println!("sale_incharge download end");
+        println!("vendor_bill_mappings download end");
     }
 }

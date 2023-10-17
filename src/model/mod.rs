@@ -23,7 +23,8 @@ mod discount_code;
 mod doctor;
 mod financial_year;
 mod gst_registration;
-mod inventory;
+// mod inventory;
+mod inventory1;
 mod manufacturer;
 mod member;
 mod patient;
@@ -34,8 +35,11 @@ mod rack;
 mod sale_incharge;
 mod save_voucher;
 mod section;
+mod set_account_opening;
 mod tds_nature_of_payment;
 mod unit;
+mod vendor_bill_mapping;
+mod vendor_item_mapping;
 mod voucher_numbering;
 mod voucher_type;
 
@@ -48,7 +52,9 @@ pub use discount_code::DiscountCode;
 pub use doctor::Doctor;
 pub use financial_year::FinancialYear;
 pub use gst_registration::GstRegistration;
-pub use inventory::*;
+pub use set_account_opening::AccountOpening;
+// pub use inventory::*;
+pub use inventory1::*;
 pub use manufacturer::Manufacturer;
 pub use member::Member;
 pub use patient::Patient;
@@ -61,6 +67,8 @@ pub use save_voucher::*;
 pub use section::Section;
 pub use tds_nature_of_payment::TdsNatureOfPayment;
 pub use unit::Unit;
+pub use vendor_bill_mapping::VendorBillMapping;
+pub use vendor_item_mapping::VendorItemMapping;
 pub use voucher_numbering::VoucherNumbering;
 pub use voucher_type::VoucherType;
 
@@ -148,6 +156,16 @@ pub struct GstInfo {
     pub location: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub gst_no: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct BillAllocationApiInput {
+    pub sno: usize,
+    pub pending: String,
+    pub ref_type: String,
+    pub amount: f64,
+    pub bill_date: String,
+    pub ref_no: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -386,7 +404,7 @@ pub async fn duplicate_fix(db: &Database) {
             .enumerate()
         {
             if idx != 0 {
-                updates.push(doc! {"q": { "_id": dup_id }, "u": [{"$set": {"name": {"$concat": ["$name", format!(" Dup {}", idx),]}, "displayName": {"$concat": ["$displayName", format!(" Dup{} ", idx),]}} }]});
+                updates.push(doc! {"q": { "_id": dup_id }, "u": [{"$set": {"name": {"$concat": ["$name", format!("Dup{}", idx),]}, "displayName": {"$concat": ["$displayName", format!("Dup{} ", idx),]}} }]});
             }
         }
     }
@@ -530,5 +548,13 @@ pub async fn duplicate_fix(db: &Database) {
         };
         db.run_command(command, None).await.unwrap();
     }
+    db
+    .collection::<Document>("voucher_types")
+    .update_many(
+        doc!{"voucherType": {"$in": ["MANUFACTURING_JOURNAL", "MATERIAL_CONVERSION", "STOCK_TRANSFER"]}}, 
+        vec![doc! {"$set": {"default": false,"voucherType": "STOCK_ADJUSTMENT", "name": {"$concat": ["$name", " StkAdj"]}, "displayName": {"$concat": ["$displayName", " StkAdj"]}}}], 
+        None
+    )
+    .await.unwrap();
     println!("print_templates duplicate fix end");
 }

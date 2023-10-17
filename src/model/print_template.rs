@@ -13,7 +13,6 @@ pub struct PrintTemplate {
 
 impl PrintTemplate {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("print_template download start");
         let mut cur = mongodb
             .collection::<Document>("print_templates")
             .find(doc! {}, None)

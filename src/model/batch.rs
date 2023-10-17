@@ -1,6 +1,7 @@
 use super::{
     doc, Created, Database, Doc, Document, Serialize, StreamExt, Surreal, SurrealClient, Thing,
 };
+use mongodb::options::FindOptions;
 
 #[derive(Debug, Serialize)]
 pub struct Batch {
@@ -24,10 +25,10 @@ pub struct Batch {
 
 impl Batch {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("batch download start");
+        let find_opts = FindOptions::builder().sort(doc! {"_id": 1}).build();
         let mut cur = mongodb
             .collection::<Document>("batches")
-            .find(doc! {}, None)
+            .find(doc! {}, find_opts)
             .await
             .unwrap();
         while let Some(Ok(d)) = cur.next().await {

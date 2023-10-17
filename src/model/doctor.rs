@@ -12,7 +12,6 @@ pub struct Doctor {
 
 impl Doctor {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("doctor download start");
         let mut cur = mongodb
             .collection::<Document>("doctors")
             .find(doc! {}, None)

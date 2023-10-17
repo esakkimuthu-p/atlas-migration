@@ -14,7 +14,6 @@ pub struct VoucherNumbering {
 
 impl VoucherNumbering {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("voucher_numbering download start");
         let mut cur = mongodb
             .collection::<Document>("voucher_numberings")
             .find(doc! {}, None)

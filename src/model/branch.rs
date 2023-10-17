@@ -24,7 +24,6 @@ pub struct Branch {
 
 impl Branch {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
-        println!("branch download start");
         let mut cur = mongodb
             .collection::<Document>("branches")
             .find(doc! {}, None)
