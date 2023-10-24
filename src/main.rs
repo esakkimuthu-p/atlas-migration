@@ -6,9 +6,10 @@ mod model;
 
 use model::{
     duplicate_fix, Account, AccountOpening, Batch, Branch, Contact, DesktopClient, DiscountCode,
-    Doctor, FinancialYear, GstRegistration, Inventory1, Manufacturer, Member, Patient, PharmaSalt,
-    PosTerminal, PrintTemplate, Rack, SaleIncharge, Section, TdsNatureOfPayment, Unit,
-    VendorBillMapping, VendorItemMapping, VoucherApiInput, VoucherNumbering, VoucherType,
+    Doctor, FinancialYear, GstRegistration, Inventory, InventoryOpening, Manufacturer, Member,
+    Patient, PharmaSalt, PosTerminal, PrintTemplate, Rack, SaleIncharge, Section,
+    TdsNatureOfPayment, Unit, VendorBillMapping, VendorItemMapping, VoucherApiInput,
+    VoucherNumbering, VoucherType,
 };
 
 #[tokio::main]
@@ -77,7 +78,7 @@ async fn main() {
     println!("branch download start");
     Branch::create(&surrealdb, &mongodb).await;
     println!("Inventory download start");
-    Inventory1::create(&surrealdb, &mongodb).await;
+    Inventory::create(&surrealdb, &mongodb).await;
     println!("Batch download start");
     Batch::create(&surrealdb, &mongodb).await;
     println!("VoucherNumbering download start");
@@ -86,14 +87,22 @@ async fn main() {
     TdsNatureOfPayment::create(&surrealdb, &mongodb).await;
     println!("AccountOpening download start");
     AccountOpening::set_account_opening(&surrealdb, &mongodb).await;
+    println!("InventoryOpening download start");
+    InventoryOpening::set_inventory_opening(&surrealdb, &mongodb).await;
     println!("purchases download start");
     VoucherApiInput::create(&surrealdb, &mongodb, "purchases").await;
     println!("credit_notes download start");
     VoucherApiInput::create(&surrealdb, &mongodb, "credit_notes").await;
-    println!("Sales download start");
+    println!("debit_notes download start");
+    VoucherApiInput::create(&surrealdb, &mongodb, "debit_notes").await;
+    println!("sales download start");
     VoucherApiInput::create(&surrealdb, &mongodb, "sales").await;
+    println!("stock_transfers download start");
     VoucherApiInput::create_stock_journal(&surrealdb, &mongodb, "stock_transfers").await;
+    println!("stock_adjustments download start");
     VoucherApiInput::create_stock_journal(&surrealdb, &mongodb, "stock_adjustments").await;
+    println!("manufacturing_journals download start");
     VoucherApiInput::create_stock_journal(&surrealdb, &mongodb, "manufacturing_journals").await;
+    println!("material_conversions download start");
     VoucherApiInput::create_stock_journal(&surrealdb, &mongodb, "material_conversions").await;
 }

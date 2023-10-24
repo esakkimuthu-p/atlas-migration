@@ -1,6 +1,6 @@
 use super::{
     doc, serialize_tax_as_thing, AmountInfo, Created, Database, Deserialize, Doc, Document,
-    HashSet, Id, Serialize, Surreal, SurrealClient, Thing, TryStreamExt,
+    HashSet, Id, Serialize, StreamExt, Surreal, SurrealClient, Thing, TryStreamExt,
 };
 use mongodb::{bson::from_document, options::FindOptions};
 
@@ -114,7 +114,7 @@ impl Inventory {
             .find(doc! {}, find_opts)
             .await
             .unwrap();
-        while let Ok(Some(d)) = cur.try_next().await {
+        while let Some(Ok(d)) = cur.next().await {
             let cess = d._get_document("cess").and_then(|x| {
                 (!x.is_empty()).then_some(from_document::<InventoryCess>(x).unwrap())
             });

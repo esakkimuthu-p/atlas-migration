@@ -43,7 +43,7 @@ impl Member {
                 .content(Self {
                     id,
                     name: name.clone(),
-                    pass: "1".to_string(),
+                    pass: name,
                     remote_access: d.get_bool("remoteAccess").unwrap_or_default(),
                     is_act: d.get_bool("isAccountant").unwrap_or_default(),
                     is_root: d.get_bool("isRoot").unwrap_or_default(),

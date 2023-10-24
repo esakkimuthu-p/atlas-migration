@@ -1,16 +1,8 @@
 use super::{
     doc, serialize_opt_tax_as_thing, AmountInfo, BillAllocationApiInput, Database, Doc, Document,
-    GstInfo, Id, InventoryCess1, Serialize, StreamExt, Surreal, SurrealClient, Thing, TryStreamExt,
+    GstInfo, Id, InventoryCess, Serialize, StreamExt, Surreal, SurrealClient, Thing, TryStreamExt,
 };
 use mongodb::{bson::from_document, options::FindOptions};
-const COLLECTIONS: [&str; 4] = [
-    "contras", "receipts", "journals",
-    "payments",
-    // "purchases",
-    // "credit_notes",
-    // "debit_notes",
-    // "sales",
-];
 
 fn get_alt_accounts(ac_trns: &[Document], accounts: &[Document]) -> (Option<Thing>, Option<Thing>) {
     let mut alt_trns = ac_trns
@@ -30,10 +22,18 @@ fn get_alt_accounts(ac_trns: &[Document], accounts: &[Document]) -> (Option<Thin
     let cr_alt: Option<Thing> = if let Some(cr) = cr_alt_acc {
         let acc = accounts
             .iter()
-            .find(|x| x.get_object_id("_id").unwrap() == cr)
-            .unwrap();
-        if let Some(default_name) = acc.get_string("defaultName") {
-            Some(("account".to_string(), default_name.to_lowercase()).into())
+            .find(|x| x.get_object_id("_id").unwrap() == cr);
+        if let Some(default_acc) = acc {
+            Some(
+                (
+                    "account".to_string(),
+                    default_acc
+                        .get_string("defaultName")
+                        .unwrap()
+                        .to_lowercase(),
+                )
+                    .into(),
+            )
         } else {
             Some(("account".to_string(), cr.to_hex()).into())
         }
@@ -52,10 +52,18 @@ fn get_alt_accounts(ac_trns: &[Document], accounts: &[Document]) -> (Option<Thin
     let dr_alt: Option<Thing> = if let Some(dr) = dr_alt_acc {
         let acc = accounts
             .iter()
-            .find(|x| x.get_object_id("_id").unwrap() == dr)
-            .unwrap();
-        if let Some(default_name) = acc.get_string("defaultName") {
-            Some(("account".to_string(), default_name.to_lowercase()).into())
+            .find(|x| x.get_object_id("_id").unwrap() == dr);
+        if let Some(default_acc) = acc {
+            Some(
+                (
+                    "account".to_string(),
+                    default_acc
+                        .get_string("defaultName")
+                        .unwrap()
+                        .to_lowercase(),
+                )
+                    .into(),
+            )
         } else {
             Some(("account".to_string(), dr.to_hex()).into())
         }
@@ -69,14 +77,17 @@ fn get_alt_accounts(ac_trns: &[Document], accounts: &[Document]) -> (Option<Thin
 pub struct VoucherAccTransactionApiInput {
     pub sno: usize,
     pub id: Thing,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub alt_account: Option<Thing>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(serialize_with = "serialize_opt_tax_as_thing")]
     pub gst_tax: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub is_default: Option<bool>,
     pub account: Thing,
     pub credit: f64,
     pub debit: f64,
+    #[serde(skip_serializing_if = "Option::is_none")]
     bill_allocations: Option<Vec<BillAllocationApiInput>>,
 }
 #[derive(Debug, Serialize)]
@@ -84,58 +95,130 @@ pub struct VoucherInvTransactionApiInput {
     pub sno: usize,
     pub id: Thing,
     pub inventory: Thing,
+    pub batch: Thing,
     pub unit_conv: f64,
+    pub inward: f64,
+    pub outward: f64,
     pub unit_precision: u8,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub rate: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub cost: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub qty: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub free_qty: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(serialize_with = "serialize_opt_tax_as_thing")]
     pub gst_tax: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub s_inc: Option<Thing>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub disc: Option<AmountInfo>,
-    pub batch: Thing,
-    pub cess: Option<InventoryCess1>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cess: Option<InventoryCess>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tax_inc: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub nlc: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub taxable_amount: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub cgst_amount: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub sgst_amount: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub igst_amount: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub cess_amount: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub asset_amount: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub sale_taxable_amount: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub sale_tax_amount: Option<f64>,
 }
 #[derive(Debug, Serialize)]
 pub struct VoucherApiInput {
     pub id: Thing,
     pub date: String,
-    pub voucher_no: String,
+    pub voucher_prefix: String,
+    pub voucher_fy: u16,
+    pub voucher_seq: u16,
     pub eff_date: String,
-    pub mode: Option<String>,
-    pub ref_no: Option<String>,
-    pub customer_group: Option<Thing>,
-    pub patient: Option<Thing>,
-    pub doctor: Option<Thing>,
-    pub lut: Option<bool>,
-    pub voucher_type: Thing,
-    pub description: Option<String>,
     pub branch: Thing,
+    pub voucher_type: Thing,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mode: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ref_no: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub customer_group: Option<Thing>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub patient: Option<Thing>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub doctor: Option<Thing>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub lut: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub contact: Option<Thing>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub party_gst: Option<GstInfo>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub branch_gst: Option<GstInfo>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub particulars: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub amount: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub ac_txns: Option<Vec<VoucherAccTransactionApiInput>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub inv_txns: Option<Vec<VoucherInvTransactionApiInput>>,
 }
 
 impl VoucherApiInput {
+    fn voucher_no(
+        v_no: &str,
+        branch_prefix: &str,
+        fy: &str,
+        voucher_prefix: Option<&str>,
+    ) -> (String, u16, u16) {
+        let mut vch_no = if let Some(stripped) = v_no.strip_prefix(branch_prefix) {
+            stripped
+        } else {
+            v_no
+        };
+        let vch_pfx = if let Some(pfx) = voucher_prefix {
+            vch_no = if let Some(stripped) = vch_no.strip_prefix(pfx) {
+                stripped
+            } else {
+                vch_no
+            };
+            Some(pfx.to_owned())
+        } else {
+            None
+        };
+        vch_no = if let Some(stripped) = vch_no.strip_prefix(fy) {
+            stripped
+        } else {
+            vch_no
+        };
+        (
+            format!(
+                "{}{}",
+                branch_prefix.to_owned(),
+                vch_pfx.unwrap_or_default()
+            ),
+            fy.parse::<u16>().unwrap(),
+            vch_no.parse::<u16>().unwrap(),
+        )
+    }
+
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database, collection: &str) {
         let find_opts = FindOptions::builder()
-            .projection(doc! {"default": 1, "voucherType": 1})
+            .projection(doc! {"default": 1, "voucherType": 1, "prefix": 1})
             .build();
         let v_types = mongodb
             .collection::<Document>("voucher_types")
@@ -161,7 +244,26 @@ impl VoucherApiInput {
             .build();
         let accounts = mongodb
             .collection::<Document>("accounts")
+            .find(doc! {"defaultName": {"$exists": true}}, find_opts)
+            .await
+            .unwrap()
+            .try_collect::<Vec<Document>>()
+            .await
+            .unwrap();
+        let find_opts = FindOptions::builder()
+            .projection(doc! {"voucherNoPrefix": 1})
+            .build();
+        let branches = mongodb
+            .collection::<Document>("branches")
             .find(doc! {}, find_opts)
+            .await
+            .unwrap()
+            .try_collect::<Vec<Document>>()
+            .await
+            .unwrap();
+        let fys = mongodb
+            .collection::<Document>("financial_years")
+            .find(doc! {}, None)
             .await
             .unwrap()
             .try_collect::<Vec<Document>>()
@@ -196,7 +298,7 @@ impl VoucherApiInput {
                 location: x.get_string("location"),
                 gst_no: x.get_string("gstNo"),
             });
-            let party_gst = d._get_document("branchGst").map(|x| GstInfo {
+            let party_gst = d._get_document("partyGst").map(|x| GstInfo {
                 reg_type: x.get_string("regType").unwrap(),
                 location: x.get_string("location"),
                 gst_no: x.get_string("gstNo"),
@@ -212,16 +314,18 @@ impl VoucherApiInput {
                     } else {
                         dr_alt.clone()
                     };
-                    let account_doc = accounts
-                        .iter()
-                        .find(|x| {
-                            x.get_object_id("_id").unwrap()
-                                == ac_trn.get_object_id("account").unwrap()
-                        })
-                        .unwrap();
-                    let account = if let Some(default_name) = account_doc.get_string("defaultName")
-                    {
-                        ("account".to_string(), default_name.to_lowercase()).into()
+                    let default_account_doc = accounts.iter().find(|x| {
+                        x.get_object_id("_id").unwrap() == ac_trn.get_object_id("account").unwrap()
+                    });
+                    let account = if let Some(default_acc) = default_account_doc {
+                        (
+                            "account".to_string(),
+                            default_acc
+                                .get_string("defaultName")
+                                .unwrap()
+                                .to_lowercase(),
+                        )
+                            .into()
                     } else {
                         ac_trn.get_oid_to_thing("account", "account").unwrap()
                     };
@@ -268,6 +372,32 @@ impl VoucherApiInput {
                     } else {
                         None
                     };
+                    let (inward, outward) = match collection {
+                        "purchases" => (
+                            (inv_trn._get_f64("qty").unwrap_or_default()
+                                + inv_trn._get_f64("freeQty").unwrap_or_default())
+                                * inv_trn._get_f64("unitConv").unwrap(),
+                            0.0,
+                        ),
+                        "debit_notes" => (
+                            inv_trn._get_f64("qty").unwrap_or_default()
+                                * inv_trn._get_f64("unitConv").unwrap()
+                                * -1.0,
+                            0.0,
+                        ),
+                        "sales" => (
+                            0.0,
+                            inv_trn._get_f64("qty").unwrap_or_default()
+                                * inv_trn._get_f64("unitConv").unwrap(),
+                        ),
+                        "credit_notes" => (
+                            0.0,
+                            inv_trn._get_f64("qty").unwrap_or_default()
+                                * inv_trn._get_f64("unitConv").unwrap()
+                                * -1.0,
+                        ),
+                        _ => panic!("invalid voucher"),
+                    };
                     inv_txns.push(VoucherInvTransactionApiInput {
                         sno: sno + 1,
                         id: inv_trn.get_oid_to_thing("_id", "inv_txn").unwrap(),
@@ -278,6 +408,8 @@ impl VoucherApiInput {
                         cost: None,
                         qty: inv_trn._get_f64("qty"),
                         free_qty: inv_trn._get_f64("freeQty"),
+                        inward,
+                        outward,
                         gst_tax: inv_trn.get_string("tax"),
                         s_inc: inv_trn.get_oid_to_thing("s_inc", "sale_incharge"),
                         disc: inv_trn._get_document("disc").and_then(|x| {
@@ -285,7 +417,7 @@ impl VoucherApiInput {
                         }),
                         batch: inv_trn.get_oid_to_thing("batch", "batch").unwrap(),
                         cess: inv_trn._get_document("cess").and_then(|x| {
-                            (!x.is_empty()).then_some(from_document::<InventoryCess1>(x).unwrap())
+                            (!x.is_empty()).then_some(from_document::<InventoryCess>(x).unwrap())
                         }),
                         tax_inc: inv_trn.get_bool("taxInc").ok(),
                         nlc,
@@ -300,10 +432,37 @@ impl VoucherApiInput {
                     });
                 }
             }
+            let branch_prefix = branches
+                .iter()
+                .find_map(|x| {
+                    (x.get_object_id("_id").unwrap() == d.get_object_id("branch").unwrap())
+                        .then_some(x.get_str("voucherNoPrefix").unwrap())
+                })
+                .unwrap();
+            let fy = fys
+                .iter()
+                .find(|x| {
+                    x.get_string("fStart").unwrap() <= d.get_string("date").unwrap()
+                        && x.get_string("fEnd").unwrap() >= d.get_string("date").unwrap()
+                })
+                .unwrap();
+            let fy = format!(
+                "{}{}",
+                &fy.get_string("fStart").unwrap()[2..=3],
+                &fy.get_string("fEnd").unwrap()[2..=3]
+            );
+            let voucher_no = Self::voucher_no(
+                &d.get_string("voucherNo").unwrap(),
+                branch_prefix,
+                &fy,
+                None,
+            );
             let input_data = Self {
                 id: d.get_oid_to_thing("_id", "voucher").unwrap(),
                 date: d.get_string("date").unwrap(),
-                voucher_no: d.get_string("voucherNo").unwrap(),
+                voucher_prefix: voucher_no.0,
+                voucher_fy: voucher_no.1,
+                voucher_seq: voucher_no.2,
                 eff_date: d
                     .get_string("effDate")
                     .unwrap_or(d.get_string("date").unwrap()),
@@ -345,7 +504,7 @@ impl VoucherApiInput {
         collection: &str,
     ) {
         let find_opts = FindOptions::builder()
-            .projection(doc! {"default": 1, "voucherType": 1})
+            .projection(doc! {"default": 1, "voucherType": 1, "prefix": 1})
             .build();
         let v_types = mongodb
             .collection::<Document>("voucher_types")
@@ -366,9 +525,29 @@ impl VoucherApiInput {
             .try_collect::<Vec<Document>>()
             .await
             .unwrap();
+        let find_opts = FindOptions::builder()
+            .projection(doc! {"voucherNoPrefix": 1})
+            .build();
+        let branches = mongodb
+            .collection::<Document>("branches")
+            .find(doc! {}, find_opts)
+            .await
+            .unwrap()
+            .try_collect::<Vec<Document>>()
+            .await
+            .unwrap();
+        let fys = mongodb
+            .collection::<Document>("financial_years")
+            .find(doc! {}, None)
+            .await
+            .unwrap()
+            .try_collect::<Vec<Document>>()
+            .await
+            .unwrap();
+        let find_opts = FindOptions::builder().sort(doc! {"_id": 1}).build();
         let mut cur = mongodb
             .collection::<Document>(collection)
-            .find(doc! {}, None)
+            .find(doc! {}, find_opts)
             .await
             .unwrap();
         while let Some(Ok(d)) = cur.next().await {
@@ -446,6 +625,18 @@ impl VoucherApiInput {
                             } else {
                                 inv_trn._get_f64("qty").map(|x| x.abs())
                             };
+                            let (inward, outward) = if qty.unwrap_or_default() > 0.0 {
+                                (
+                                    qty.unwrap_or_default() * inv_trn._get_f64("unitConv").unwrap(),
+                                    0.0,
+                                )
+                            } else {
+                                (
+                                    0.0,
+                                    qty.unwrap_or_default() * inv_trn._get_f64("unitConv").unwrap(),
+                                )
+                            };
+
                             inv_txns.push(VoucherInvTransactionApiInput {
                                 sno: sno + 1,
                                 id: inv_trn.get_oid_to_thing("_id", "inv_txn").unwrap(),
@@ -457,6 +648,8 @@ impl VoucherApiInput {
                                 rate: inv_trn._get_f64("rate"),
                                 cost: inv_trn._get_f64("cost"),
                                 qty,
+                                inward,
+                                outward,
                                 free_qty: None,
                                 gst_tax: None,
                                 s_inc: None,
@@ -501,6 +694,9 @@ impl VoucherApiInput {
                                 cess: None,
                                 tax_inc: None,
                                 nlc: None,
+                                inward: 0.0,
+                                outward: comp._get_f64("qty").unwrap_or_default().abs()
+                                    * comp._get_f64("unitConv").unwrap(),
                                 taxable_amount: None,
                                 cgst_amount: None,
                                 sgst_amount: None,
@@ -514,6 +710,15 @@ impl VoucherApiInput {
                                 sale_tax_amount: None,
                             });
                         }
+                        let (inward, outward) = match collection {
+                            "purchases" => (
+                                (inv_trn._get_f64("qty").unwrap_or_default()
+                                    + inv_trn._get_f64("qty").unwrap_or_default())
+                                    * inv_trn._get_f64("unitConv").unwrap(),
+                                0.0,
+                            ),
+                            _ => panic!("invalid voucher"),
+                        };
                         inv_txns.push(VoucherInvTransactionApiInput {
                             sno: components.len() + 1,
                             id: Thing {
@@ -530,6 +735,8 @@ impl VoucherApiInput {
                             gst_tax: None,
                             s_inc: None,
                             disc: None,
+                            inward,
+                            outward,
                             batch: inv_trn.get_oid_to_thing("batch", "batch").unwrap(),
                             cess: None,
                             tax_inc: None,
@@ -557,6 +764,15 @@ impl VoucherApiInput {
                             for target in inv_trn.get_array_document("targets").unwrap_or(vec![]) {
                                 source_qty += target._get_f64("sourceQty").unwrap_or_default();
                                 sr_no += 1;
+                                let (inward, outward) = match collection {
+                                    "purchases" => (
+                                        (inv_trn._get_f64("qty").unwrap_or_default()
+                                            + inv_trn._get_f64("qty").unwrap_or_default())
+                                            * inv_trn._get_f64("unitConv").unwrap(),
+                                        0.0,
+                                    ),
+                                    _ => panic!("invalid voucher"),
+                                };
                                 inv_txns.push(VoucherInvTransactionApiInput {
                                     sno: sr_no,
                                     id: target.get_oid_to_thing("_id", "inv_txn").unwrap(),
@@ -568,6 +784,8 @@ impl VoucherApiInput {
                                     rate: None,
                                     cost: target._get_f64("cost"),
                                     qty: target._get_f64("qty").map(|x| x.abs()),
+                                    inward,
+                                    outward,
                                     free_qty: None,
                                     gst_tax: None,
                                     s_inc: None,
@@ -590,6 +808,15 @@ impl VoucherApiInput {
                                 });
                             }
                             sr_no += 1;
+                            let (inward, outward) = match collection {
+                                "purchases" => (
+                                    (inv_trn._get_f64("qty").unwrap_or_default()
+                                        + inv_trn._get_f64("qty").unwrap_or_default())
+                                        * inv_trn._get_f64("unitConv").unwrap(),
+                                    0.0,
+                                ),
+                                _ => panic!("invalid voucher"),
+                            };
                             inv_txns.push(VoucherInvTransactionApiInput {
                                 sno: sr_no,
                                 id: inv_trn.get_oid_to_thing("_id", "inv_txn").unwrap(),
@@ -601,6 +828,8 @@ impl VoucherApiInput {
                                 rate: None,
                                 cost: inv_trn._get_f64("cost"),
                                 qty: Some(source_qty),
+                                inward,
+                                outward,
                                 free_qty: None,
                                 gst_tax: None,
                                 s_inc: None,
@@ -623,11 +852,37 @@ impl VoucherApiInput {
                 }
                 _ => panic!("internal err"),
             }
-
+            let branch_prefix = branches
+                .iter()
+                .find_map(|x| {
+                    (x.get_object_id("_id").unwrap() == d.get_object_id("branch").unwrap())
+                        .then_some(x.get_str("voucherNoPrefix").unwrap())
+                })
+                .unwrap();
+            let fy = fys
+                .iter()
+                .find(|x| {
+                    d.get_string("date").unwrap() <= x.get_string("fStart").unwrap()
+                        && d.get_string("date").unwrap() >= x.get_string("fEnd").unwrap()
+                })
+                .unwrap();
+            let fy = format!(
+                "{}{}",
+                &fy.get_string("fStart").unwrap()[2..=3],
+                &fy.get_string("fEnd").unwrap()[2..=3]
+            );
+            let voucher_no = Self::voucher_no(
+                &d.get_string("voucherNo").unwrap(),
+                branch_prefix,
+                &fy,
+                None,
+            );
             let input_data = Self {
                 id: d.get_oid_to_thing("_id", "voucher").unwrap(),
                 date: d.get_string("date").unwrap(),
-                voucher_no: d.get_string("voucherNo").unwrap(),
+                voucher_prefix: voucher_no.0,
+                voucher_fy: voucher_no.1,
+                voucher_seq: voucher_no.2,
                 eff_date: d
                     .get_string("effDate")
                     .unwrap_or(d.get_string("date").unwrap()),
