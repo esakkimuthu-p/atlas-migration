@@ -1,4 +1,4 @@
-use mongodb::Client as MongoClient;
+use mongodb::{bson::doc, Client as MongoClient};
 
 use surrealdb::{engine::remote::ws::Ws, opt::auth::Root, Surreal};
 
@@ -87,22 +87,40 @@ async fn main() {
     TdsNatureOfPayment::create(&surrealdb, &mongodb).await;
     println!("AccountOpening download start");
     AccountOpening::set_account_opening(&surrealdb, &mongodb).await;
+    println!("payments download start");
+    VoucherApiInput::create(&surrealdb, &mongodb, "payments").await;
+    println!("receipts download start");
+    VoucherApiInput::create(&surrealdb, &mongodb, "receipts").await;
+    println!("contras download start");
+    VoucherApiInput::create(&surrealdb, &mongodb, "contras").await;
+    println!("journals download start");
+    VoucherApiInput::create(&surrealdb, &mongodb, "journals").await;
     println!("InventoryOpening download start");
     InventoryOpening::set_inventory_opening(&surrealdb, &mongodb).await;
     println!("purchases download start");
     VoucherApiInput::create(&surrealdb, &mongodb, "purchases").await;
     println!("credit_notes download start");
     VoucherApiInput::create(&surrealdb, &mongodb, "credit_notes").await;
+    println!("stock_transfers target download start");
+    VoucherApiInput::create_stock_journal(
+        &surrealdb,
+        &mongodb,
+        "stock_transfers",
+        doc! {"transferType": "TARGET"},
+    )
+    .await;
     println!("debit_notes download start");
     VoucherApiInput::create(&surrealdb, &mongodb, "debit_notes").await;
     println!("sales download start");
     VoucherApiInput::create(&surrealdb, &mongodb, "sales").await;
     println!("stock_transfers download start");
-    VoucherApiInput::create_stock_journal(&surrealdb, &mongodb, "stock_transfers").await;
+    VoucherApiInput::create_stock_journal(&surrealdb, &mongodb, "stock_transfers", doc! {}).await;
     println!("stock_adjustments download start");
-    VoucherApiInput::create_stock_journal(&surrealdb, &mongodb, "stock_adjustments").await;
+    VoucherApiInput::create_stock_journal(&surrealdb, &mongodb, "stock_adjustments", doc! {}).await;
     println!("manufacturing_journals download start");
-    VoucherApiInput::create_stock_journal(&surrealdb, &mongodb, "manufacturing_journals").await;
+    VoucherApiInput::create_stock_journal(&surrealdb, &mongodb, "manufacturing_journals", doc! {})
+        .await;
     println!("material_conversions download start");
-    VoucherApiInput::create_stock_journal(&surrealdb, &mongodb, "material_conversions").await;
+    VoucherApiInput::create_stock_journal(&surrealdb, &mongodb, "material_conversions", doc! {})
+        .await;
 }
