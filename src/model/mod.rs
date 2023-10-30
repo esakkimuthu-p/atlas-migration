@@ -375,6 +375,7 @@ pub async fn duplicate_fix(db: &Database) {
     }
     println!("patients duplicate fix end");
 
+    println!("contacts duplicate fix start");
     let docs = db
         .collection::<Document>("contacts")
         .aggregate(
@@ -556,5 +557,4 @@ pub async fn duplicate_fix(db: &Database) {
         None
     )
     .await.unwrap();
-    println!("print_templates duplicate fix end");
 }

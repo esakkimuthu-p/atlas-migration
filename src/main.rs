@@ -68,6 +68,9 @@ async fn main() {
         .default_database()
         .unwrap();
     println!("company name {:?}", mongodb.name());
+    println!("default account fix start");
+    Account::map(&mongodb).await;
+
     if args.master.unwrap_or_default() {
         if args.created_at.is_none() {
             println!("duplicate_fix start");

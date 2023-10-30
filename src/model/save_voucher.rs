@@ -4,16 +4,8 @@ use super::{
 };
 use mongodb::{bson::from_document, options::FindOptions};
 
-fn get_alt_accounts(
-    ac_trns: &[Document],
-    accounts: &[Document],
-    inc_stock: bool,
-) -> (Option<Thing>, Option<Thing>) {
-    let mut alt_trns = ac_trns
-        .iter()
-        .cloned()
-        .filter(|x| x.get_string("accountType").unwrap_or_default() != "STOCK" || inc_stock)
-        .collect::<Vec<Document>>();
+fn get_alt_accounts(ac_trns: &[Document], accounts: &[Document]) -> (Option<Thing>, Option<Thing>) {
+    let mut alt_trns: Vec<Document> = ac_trns.to_owned();
     alt_trns.sort_by(|a, b| {
         b._get_f64("debit")
             .unwrap_or_default()
@@ -32,7 +24,7 @@ fn get_alt_accounts(
                 (
                     "account".to_string(),
                     default_acc
-                        .get_string("defaultName")
+                        .get_string("surrealId")
                         .unwrap_or(cr.to_hex())
                         .to_lowercase(),
                 )
@@ -62,7 +54,7 @@ fn get_alt_accounts(
                 (
                     "account".to_string(),
                     default_acc
-                        .get_string("defaultName")
+                        .get_string("surrealId")
                         .unwrap_or(dr.to_hex())
                         .to_lowercase(),
                 )
@@ -230,11 +222,11 @@ impl VoucherApiInput {
             .await
             .unwrap();
         let find_opts = FindOptions::builder()
-            .projection(doc! {"defaultName": 1})
+            .projection(doc! {"surrealId": 1})
             .build();
         let accounts = mongodb
             .collection::<Document>("accounts")
-            .find(doc! {"defaultName": {"$exists": true}}, find_opts)
+            .find(doc! {"surrealId": {"$exists": true}}, find_opts)
             .await
             .unwrap()
             .try_collect::<Vec<Document>>()
@@ -297,8 +289,13 @@ impl VoucherApiInput {
                 });
                 let mut ac_txns = Vec::new();
                 let mut particulars = None;
-                if let Some(ac_trns) = d.get_array_document("acTrns") {
-                    let (cr_alt, dr_alt) = get_alt_accounts(&ac_trns, &accounts, false);
+                if let Some(ac_trns_array) = d.get_array_document("acTrns") {
+                    let ac_trns = ac_trns_array
+                        .iter()
+                        .cloned()
+                        .filter(|x| x.get_string("accountType").unwrap_or_default() != "STOCK")
+                        .collect::<Vec<Document>>();
+                    let (cr_alt, dr_alt) = get_alt_accounts(&ac_trns, &accounts);
                     if ["contras", "debit_notes", "payments", "sales"].contains(&collection) {
                         particulars = cr_alt.clone();
                     } else {
@@ -319,10 +316,7 @@ impl VoucherApiInput {
                         let account = if let Some(default_acc) = default_account_doc {
                             (
                                 "account".to_string(),
-                                default_acc
-                                    .get_string("defaultName")
-                                    .unwrap()
-                                    .to_lowercase(),
+                                default_acc.get_string("surrealId").unwrap(),
                             )
                                 .into()
                         } else {
@@ -515,17 +509,6 @@ impl VoucherApiInput {
             .try_collect::<Vec<Document>>()
             .await
             .unwrap();
-        let accounts = mongodb
-            .collection::<Document>("accounts")
-            .find(
-                doc! {"accountType": {"$in": ["STOCK", "BRANCH_TRANSFER"]}},
-                None,
-            )
-            .await
-            .unwrap()
-            .try_collect::<Vec<Document>>()
-            .await
-            .unwrap();
         let find_opts = FindOptions::builder()
             .projection(doc! {"voucherNoPrefix": 1})
             .build();
@@ -566,44 +549,6 @@ impl VoucherApiInput {
                     )
                 })
                 .unwrap_or(d.get_oid_to_thing("voucherTypeId", "voucher_type").unwrap());
-            let mut ac_txns = Vec::new();
-            if let Some(ac_trns) = d.get_array_document("acTrns") {
-                let (cr_alt, dr_alt) = get_alt_accounts(&ac_trns, &accounts, true);
-                for (sno, ac_trn) in ac_trns.iter().enumerate() {
-                    let id = ac_trn.get_oid_to_thing("_id", "ac_txn").unwrap();
-                    let credit = ac_trn._get_f64("credit").unwrap();
-                    let alt_account = if credit > 0.0 {
-                        cr_alt.clone()
-                    } else {
-                        dr_alt.clone()
-                    };
-                    let account_doc = accounts
-                        .iter()
-                        .find(|x| {
-                            x.get_object_id("_id").unwrap()
-                                == ac_trn.get_object_id("account").unwrap()
-                        })
-                        .unwrap();
-                    let account = if let Some(default_name) = account_doc.get_string("defaultName")
-                    {
-                        ("account".to_string(), default_name.to_lowercase()).into()
-                    } else {
-                        ac_trn.get_oid_to_thing("account", "account").unwrap()
-                    };
-
-                    ac_txns.push(VoucherAccTransactionApiInput {
-                        sno: sno + 1,
-                        id,
-                        alt_account,
-                        gst_tax: None,
-                        is_default: ac_trn.get_bool("isDefault").ok(),
-                        account,
-                        credit,
-                        debit: ac_trn._get_f64("debit").unwrap(),
-                        bill_allocations: None,
-                    });
-                }
-            }
             let mut inv_txns = Vec::new();
             match collection {
                 "stock_adjustments" | "stock_transfers" => {
@@ -857,6 +802,9 @@ impl VoucherApiInput {
                 id: d.get_oid_to_thing("_id", "voucher").unwrap(),
                 date: d.get_string("date").unwrap(),
                 voucher_no: d.get_string("voucherNo").unwrap(),
+                branch: d.get_oid_to_thing("branch", "branch").unwrap(),
+                amount: d._get_f64("amount"),
+                description: d.get_string("description"),
                 voucher_prefix: voucher_no.0,
                 voucher_fy: voucher_no.1,
                 voucher_seq: voucher_no.2,
@@ -865,20 +813,17 @@ impl VoucherApiInput {
                     .unwrap_or(d.get_string("date").unwrap()),
                 mode: Some("INV".to_string()),
                 ref_no: d.get_string("refNo"),
+                inv_txns: (!inv_txns.is_empty()).then_some(inv_txns),
                 customer_group: None,
                 patient: None,
                 doctor: None,
                 lut: None,
                 voucher_type,
-                description: d.get_string("description"),
-                branch: d.get_oid_to_thing("branch", "branch").unwrap(),
                 contact: None,
                 party_gst: None,
                 branch_gst: None,
                 particulars: None,
-                amount: d._get_f64("amount"),
-                ac_txns: (!ac_txns.is_empty()).then_some(ac_txns),
-                inv_txns: (!inv_txns.is_empty()).then_some(inv_txns),
+                ac_txns: None,
             };
 
             let _created: Thing = surrealdb
