@@ -9,10 +9,14 @@ pub struct Rack {
 }
 
 impl Rack {
-    pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
+    pub async fn create(
+        surrealdb: &Surreal<SurrealClient>,
+        mongodb: &Database,
+        filter: Option<Document>,
+    ) {
         let mut cur = mongodb
             .collection::<Document>("racks")
-            .find(doc! {}, None)
+            .find(filter.unwrap_or_default(), None)
             .await
             .unwrap();
         while let Some(Ok(d)) = cur.next().await {

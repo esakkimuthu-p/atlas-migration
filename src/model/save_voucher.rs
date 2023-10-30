@@ -63,7 +63,7 @@ fn get_alt_accounts(
                     "account".to_string(),
                     default_acc
                         .get_string("defaultName")
-                        .unwrap()
+                        .unwrap_or(dr.to_hex())
                         .to_lowercase(),
                 )
                     .into(),
@@ -201,7 +201,12 @@ impl VoucherApiInput {
         )
     }
 
-    pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database, collection: &str) {
+    pub async fn create(
+        surrealdb: &Surreal<SurrealClient>,
+        mongodb: &Database,
+        collection: &str,
+        filter: Document,
+    ) {
         let find_opts = FindOptions::builder()
             .projection(doc! {"default": 1, "voucherType": 1, "prefix": 1})
             .build();
@@ -257,7 +262,7 @@ impl VoucherApiInput {
         let find_opts = FindOptions::builder().sort(doc! {"_id": 1}).build();
         let mut cur = mongodb
             .collection::<Document>(collection)
-            .find(doc! {}, find_opts)
+            .find(filter, find_opts)
             .await
             .unwrap();
         while let Some(Ok(d)) = cur.next().await {
@@ -619,7 +624,7 @@ impl VoucherApiInput {
                             {
                                 inv_trn._get_f64("qty").map(|x| x.abs() * -1.0)
                             } else {
-                                inv_trn._get_f64("qty").map(|x| x.abs())
+                                inv_trn._get_f64("qty")
                             };
                             let (inward, outward) = if qty.unwrap_or_default() > 0.0 {
                                 (
@@ -706,15 +711,6 @@ impl VoucherApiInput {
                                 sale_tax_amount: None,
                             });
                         }
-                        let (inward, outward) = match collection {
-                            "purchases" => (
-                                (inv_trn._get_f64("qty").unwrap_or_default()
-                                    + inv_trn._get_f64("qty").unwrap_or_default())
-                                    * inv_trn._get_f64("unitConv").unwrap(),
-                                0.0,
-                            ),
-                            _ => panic!("invalid voucher"),
-                        };
                         inv_txns.push(VoucherInvTransactionApiInput {
                             sno: components.len() + 1,
                             id: Thing {
@@ -731,8 +727,11 @@ impl VoucherApiInput {
                             gst_tax: None,
                             s_inc: None,
                             disc: None,
-                            inward,
-                            outward,
+                            inward: inv_trn
+                                ._get_f64("qty")
+                                .map(|x| x.abs() * inv_trn._get_f64("unitConv").unwrap())
+                                .unwrap(),
+                            outward: 0.0,
                             batch: inv_trn.get_oid_to_thing("batch", "batch").unwrap(),
                             cess: None,
                             tax_inc: None,
@@ -760,15 +759,6 @@ impl VoucherApiInput {
                             for target in inv_trn.get_array_document("targets").unwrap_or(vec![]) {
                                 source_qty += target._get_f64("sourceQty").unwrap_or_default();
                                 sr_no += 1;
-                                let (inward, outward) = match collection {
-                                    "purchases" => (
-                                        (inv_trn._get_f64("qty").unwrap_or_default()
-                                            + inv_trn._get_f64("qty").unwrap_or_default())
-                                            * inv_trn._get_f64("unitConv").unwrap(),
-                                        0.0,
-                                    ),
-                                    _ => panic!("invalid voucher"),
-                                };
                                 inv_txns.push(VoucherInvTransactionApiInput {
                                     sno: sr_no,
                                     id: target.get_oid_to_thing("_id", "inv_txn").unwrap(),
@@ -780,8 +770,11 @@ impl VoucherApiInput {
                                     rate: None,
                                     cost: target._get_f64("cost"),
                                     qty: target._get_f64("qty").map(|x| x.abs()),
-                                    inward,
-                                    outward,
+                                    inward: target
+                                        ._get_f64("qty")
+                                        .map(|x| x.abs() * target._get_f64("unitConv").unwrap())
+                                        .unwrap(),
+                                    outward: 0.0,
                                     free_qty: None,
                                     gst_tax: None,
                                     s_inc: None,
@@ -804,15 +797,6 @@ impl VoucherApiInput {
                                 });
                             }
                             sr_no += 1;
-                            let (inward, outward) = match collection {
-                                "purchases" => (
-                                    (inv_trn._get_f64("qty").unwrap_or_default()
-                                        + inv_trn._get_f64("qty").unwrap_or_default())
-                                        * inv_trn._get_f64("unitConv").unwrap(),
-                                    0.0,
-                                ),
-                                _ => panic!("invalid voucher"),
-                            };
                             inv_txns.push(VoucherInvTransactionApiInput {
                                 sno: sr_no,
                                 id: inv_trn.get_oid_to_thing("_id", "inv_txn").unwrap(),
@@ -824,8 +808,8 @@ impl VoucherApiInput {
                                 rate: None,
                                 cost: inv_trn._get_f64("cost"),
                                 qty: Some(source_qty),
-                                inward,
-                                outward,
+                                inward: 0.0,
+                                outward: source_qty * inv_trn._get_f64("unitConv").unwrap(),
                                 free_qty: None,
                                 gst_tax: None,
                                 s_inc: None,
@@ -858,8 +842,8 @@ impl VoucherApiInput {
             let fy = fys
                 .iter()
                 .find(|x| {
-                    d.get_string("date").unwrap() <= x.get_string("fStart").unwrap()
-                        && d.get_string("date").unwrap() >= x.get_string("fEnd").unwrap()
+                    x.get_string("fStart").unwrap() <= d.get_string("date").unwrap()
+                        && x.get_string("fEnd").unwrap() >= d.get_string("date").unwrap()
                 })
                 .unwrap();
             let fy = format!(

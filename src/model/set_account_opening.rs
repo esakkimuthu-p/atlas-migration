@@ -84,8 +84,9 @@ impl AccountOpening {
                 debit: d._get_f64("debit").unwrap_or_default(),
                 bill_allocations: (!bill_allocations.is_empty()).then_some(bill_allocations),
             };
+            // println!("{:?}", &input_data);
             let _created: String = surrealdb
-                .query("fn::set_account_opening($data)")
+                .query("fn::set_account_opening_script($data)")
                 .bind(("data", input_data))
                 .await
                 .unwrap()

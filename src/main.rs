@@ -1,4 +1,8 @@
-use mongodb::{bson::doc, Client as MongoClient};
+use clap::Parser;
+use mongodb::{
+    bson::{doc, DateTime},
+    Client as MongoClient,
+};
 
 use surrealdb::{engine::remote::ws::Ws, opt::auth::Root, Surreal};
 
@@ -12,12 +16,42 @@ use model::{
     VoucherNumbering, VoucherType,
 };
 
+#[derive(Parser, Debug)]
+#[clap(author, version, about, long_about = None)]
+struct Args {
+    /// mongodb Organization cluster MONGO-URI.
+    #[clap(short, long)]
+    uri: String,
+
+    /// surreal Organization HOST.
+    #[clap(short, long)]
+    surreal: String,
+
+    /// from_date.
+    #[clap(short, long)]
+    from_date: String,
+
+    /// to_date.
+    #[clap(short, long)]
+    to_date: String,
+
+    /// master.
+    #[clap(short, long)]
+    master: Option<bool>,
+
+    /// opening.
+    #[clap(short, long)]
+    opening: Option<bool>,
+
+    /// timestamp.
+    #[clap(short, long)]
+    created_at: Option<String>,
+}
+
 #[tokio::main]
 async fn main() {
-    dotenv::dotenv().unwrap();
-    let db_host = std::env::var("DB_HOST").expect("DB_HOST must be set");
-    let uri = std::env::var("URI").expect("URI must be set");
-    let surrealdb = Surreal::new::<Ws>(db_host).await.unwrap();
+    let args = Args::parse();
+    let surrealdb = Surreal::new::<Ws>(args.surreal).await.unwrap();
     surrealdb
         .signin(Root {
             username: "root",
@@ -28,79 +62,94 @@ async fn main() {
     surrealdb.use_ns("test").await.unwrap();
     surrealdb.use_db("test").await.unwrap();
 
-    let mongodb = MongoClient::with_uri_str(uri)
+    let mongodb = MongoClient::with_uri_str(args.uri)
         .await
         .unwrap()
         .default_database()
         .unwrap();
-    duplicate_fix(&mongodb).await;
-    println!("{:?}", mongodb.name());
-    println!("Rack download start");
-    Rack::create(&surrealdb, &mongodb).await;
-    println!("PharmaSalt download start");
-    PharmaSalt::create(&surrealdb, &mongodb).await;
-    println!("Unit download start");
-    Unit::create(&surrealdb, &mongodb).await;
-    println!("Doctor download start");
-    Doctor::create(&surrealdb, &mongodb).await;
-    println!("account download start");
-    Account::create(&surrealdb, &mongodb).await;
-    println!("Contact download start");
-    Contact::create(&surrealdb, &mongodb).await;
-    println!("VendorItemMapping download start");
-    VendorItemMapping::create(&surrealdb, &mongodb).await;
-    println!("VendorBillMapping download start");
-    VendorBillMapping::create(&surrealdb, &mongodb).await;
-    println!("Section download start");
-    Section::create(&surrealdb, &mongodb).await;
-    println!("DesktopClient download start");
-    DesktopClient::create(&surrealdb, &mongodb).await;
-    println!("DiscountCode download start");
-    DiscountCode::create(&surrealdb, &mongodb).await;
-    println!("FinancialYear download start");
-    FinancialYear::create(&surrealdb, &mongodb).await;
-    println!("Manufacturer download start");
-    Manufacturer::create(&surrealdb, &mongodb).await;
-    println!("Patient download start");
-    Patient::create(&surrealdb, &mongodb).await;
-    println!("VoucherType download start");
-    VoucherType::create(&surrealdb, &mongodb).await;
-    println!("PosTerminal download start");
-    PosTerminal::create(&surrealdb, &mongodb).await;
-    println!("Member download start");
-    Member::create(&surrealdb, &mongodb).await;
-    println!("SaleIncharge download start");
-    SaleIncharge::create(&surrealdb, &mongodb).await;
-    println!("GstRegistration download start");
-    GstRegistration::create(&surrealdb, &mongodb).await;
-    println!("PrintTemplate download start");
-    PrintTemplate::create(&surrealdb, &mongodb).await;
-    println!("branch download start");
-    Branch::create(&surrealdb, &mongodb).await;
-    println!("Inventory download start");
-    Inventory::create(&surrealdb, &mongodb).await;
-    println!("Batch download start");
-    Batch::create(&surrealdb, &mongodb).await;
-    println!("VoucherNumbering download start");
-    VoucherNumbering::create(&surrealdb, &mongodb).await;
-    println!("TdsNatureOfPayment download start");
-    TdsNatureOfPayment::create(&surrealdb, &mongodb).await;
-    println!("AccountOpening download start");
-    AccountOpening::set_account_opening(&surrealdb, &mongodb).await;
-    println!("payments download start");
-    VoucherApiInput::create(&surrealdb, &mongodb, "payments").await;
-    println!("receipts download start");
-    VoucherApiInput::create(&surrealdb, &mongodb, "receipts").await;
-    println!("contras download start");
-    VoucherApiInput::create(&surrealdb, &mongodb, "contras").await;
-    println!("journals download start");
-    VoucherApiInput::create(&surrealdb, &mongodb, "journals").await;
-    println!("InventoryOpening download start");
-    InventoryOpening::set_inventory_opening(&surrealdb, &mongodb).await;
-    println!("purchases download start");
-    VoucherApiInput::create(&surrealdb, &mongodb, "purchases").await;
-    println!("credit_notes download start");
-    VoucherApiInput::create(&surrealdb, &mongodb, "credit_notes").await;
+    println!("company name {:?}", mongodb.name());
+    if args.master.unwrap_or_default() {
+        if args.created_at.is_none() {
+            println!("duplicate_fix start");
+            duplicate_fix(&mongodb).await;
+        }
+        let filter = args
+            .created_at
+            .map(|dt| doc! {"createdAt": DateTime::parse_rfc3339_str(dt).unwrap()});
+        println!("Rack download start");
+        Rack::create(&surrealdb, &mongodb, filter).await;
+        println!("PharmaSalt download start");
+        PharmaSalt::create(&surrealdb, &mongodb).await;
+        println!("Unit download start");
+        Unit::create(&surrealdb, &mongodb).await;
+        println!("Doctor download start");
+        Doctor::create(&surrealdb, &mongodb).await;
+        println!("account download start");
+        Account::create(&surrealdb, &mongodb).await;
+        println!("Contact download start");
+        Contact::create(&surrealdb, &mongodb).await;
+        println!("VendorItemMapping download start");
+        VendorItemMapping::create(&surrealdb, &mongodb).await;
+        println!("VendorBillMapping download start");
+        VendorBillMapping::create(&surrealdb, &mongodb).await;
+        println!("Section download start");
+        Section::create(&surrealdb, &mongodb).await;
+        println!("DesktopClient download start");
+        DesktopClient::create(&surrealdb, &mongodb).await;
+        println!("DiscountCode download start");
+        DiscountCode::create(&surrealdb, &mongodb).await;
+        println!("FinancialYear download start");
+        FinancialYear::create(&surrealdb, &mongodb).await;
+        println!("Manufacturer download start");
+        Manufacturer::create(&surrealdb, &mongodb).await;
+        println!("Patient download start");
+        Patient::create(&surrealdb, &mongodb).await;
+        println!("VoucherType download start");
+        VoucherType::create(&surrealdb, &mongodb).await;
+        println!("PosTerminal download start");
+        PosTerminal::create(&surrealdb, &mongodb).await;
+        println!("Member download start");
+        Member::create(&surrealdb, &mongodb).await;
+        println!("SaleIncharge download start");
+        SaleIncharge::create(&surrealdb, &mongodb).await;
+        println!("GstRegistration download start");
+        GstRegistration::create(&surrealdb, &mongodb).await;
+        println!("PrintTemplate download start");
+        PrintTemplate::create(&surrealdb, &mongodb).await;
+        println!("branch download start");
+        Branch::create(&surrealdb, &mongodb).await;
+        println!("Inventory download start");
+        Inventory::create(&surrealdb, &mongodb).await;
+        println!("Batch download start");
+        Batch::create(&surrealdb, &mongodb).await;
+        println!("VoucherNumbering download start");
+        VoucherNumbering::create(&surrealdb, &mongodb).await;
+        println!("TdsNatureOfPayment download start");
+        TdsNatureOfPayment::create(&surrealdb, &mongodb).await;
+    }
+    if args.opening.unwrap_or_default() {
+        println!("AccountOpening download start");
+        AccountOpening::set_account_opening(&surrealdb, &mongodb).await;
+        println!("InventoryOpening download start");
+        InventoryOpening::set_inventory_opening(&surrealdb, &mongodb).await;
+    }
+    for collection in [
+        "payments",
+        "receipts",
+        "contras",
+        "journals",
+        "purchases",
+        "credit_notes",
+    ] {
+        println!("{} download start", collection);
+        VoucherApiInput::create(
+            &surrealdb,
+            &mongodb,
+            collection,
+            doc! {"date": {"$gte": &args.from_date, "$lte": &args.to_date }},
+        )
+        .await;
+    }
     println!("stock_transfers target download start");
     VoucherApiInput::create_stock_journal(
         &surrealdb,
@@ -110,17 +159,51 @@ async fn main() {
     )
     .await;
     println!("debit_notes download start");
-    VoucherApiInput::create(&surrealdb, &mongodb, "debit_notes").await;
+    VoucherApiInput::create(
+        &surrealdb,
+        &mongodb,
+        "debit_notes",
+        doc! {"date": {"$gte": &args.from_date, "$lte": &args.to_date }},
+    )
+    .await;
     println!("sales download start");
-    VoucherApiInput::create(&surrealdb, &mongodb, "sales").await;
+    VoucherApiInput::create(
+        &surrealdb,
+        &mongodb,
+        "sales",
+        doc! {"date": {"$gte": &args.from_date, "$lte": &args.to_date }},
+    )
+    .await;
     println!("stock_transfers download start");
-    VoucherApiInput::create_stock_journal(&surrealdb, &mongodb, "stock_transfers", doc! {}).await;
+    VoucherApiInput::create_stock_journal(
+        &surrealdb,
+        &mongodb,
+        "stock_transfers",
+        doc! {"transferType": "SOURCE", "date": {"$gte": &args.from_date, "$lte": &args.to_date }},
+    )
+    .await;
     println!("stock_adjustments download start");
-    VoucherApiInput::create_stock_journal(&surrealdb, &mongodb, "stock_adjustments", doc! {}).await;
+    VoucherApiInput::create_stock_journal(
+        &surrealdb,
+        &mongodb,
+        "stock_adjustments",
+        doc! {"date": {"$gte": &args.from_date, "$lte": &args.to_date }},
+    )
+    .await;
     println!("manufacturing_journals download start");
-    VoucherApiInput::create_stock_journal(&surrealdb, &mongodb, "manufacturing_journals", doc! {})
-        .await;
+    VoucherApiInput::create_stock_journal(
+        &surrealdb,
+        &mongodb,
+        "manufacturing_journals",
+        doc! {"date": {"$gte": &args.from_date, "$lte": &args.to_date }},
+    )
+    .await;
     println!("material_conversions download start");
-    VoucherApiInput::create_stock_journal(&surrealdb, &mongodb, "material_conversions", doc! {})
-        .await;
+    VoucherApiInput::create_stock_journal(
+        &surrealdb,
+        &mongodb,
+        "material_conversions",
+        doc! {"date": {"$gte": &args.from_date, "$lte": &args.to_date }},
+    )
+    .await;
 }

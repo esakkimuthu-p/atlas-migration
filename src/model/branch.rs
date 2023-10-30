@@ -17,7 +17,7 @@ pub struct Branch {
     pub voucher_no_prefix: String,
     pub members: HashSet<Thing>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub misc: Option<serde_json::Value>,
+    pub misc: Option<Document>,
     pub account: Thing,
     pub gst_registration: Thing,
 }
@@ -81,9 +81,7 @@ impl Branch {
                     account: d.get_oid_to_thing("account", "account").unwrap(),
                     voucher_no_prefix: d.get_string("voucherNoPrefix").unwrap().to_uppercase(),
                     members: d.get_array_thing("members", "member").unwrap_or_default(),
-                    misc: d
-                        .get_string("licenseNo")
-                        .map(|x| serde_json::json!({ "license_no": x })),
+                    misc: d.get_string("licenseNo").map(|x| doc! { "license_no": x }),
                     gst_registration,
                 })
                 .await
