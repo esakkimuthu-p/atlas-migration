@@ -3,16 +3,17 @@ use mongodb::{
     bson::{doc, DateTime},
     Client as MongoClient,
 };
+use std::time::Instant;
 
 use surrealdb::{engine::remote::ws::Ws, opt::auth::Root, Surreal};
 
 mod model;
 
 use model::{
-    duplicate_fix, Account, AccountOpening, Batch, Branch, Contact, DesktopClient, DiscountCode,
-    Doctor, FinancialYear, GstRegistration, Inventory, InventoryOpening, Manufacturer, Member,
-    Patient, PharmaSalt, PosTerminal, PrintTemplate, Rack, SaleIncharge, Section,
-    TdsNatureOfPayment, Unit, VendorBillMapping, VendorItemMapping, VoucherApiInput,
+    duplicate_fix, fix_batch_ref, Account, AccountOpening, Batch, Branch, Contact, DesktopClient,
+    DiscountCode, Doctor, FinancialYear, GstRegistration, Inventory, InventoryOpening,
+    Manufacturer, Member, Patient, PharmaSalt, PosTerminal, PrintTemplate, Rack, SaleIncharge,
+    Section, TdsNatureOfPayment, Unit, VendorBillMapping, VendorItemMapping, VoucherApiInput,
     VoucherNumbering, VoucherType,
 };
 
@@ -70,7 +71,9 @@ async fn main() {
     println!("company name {:?}", mongodb.name());
     println!("default account fix start");
     Account::map(&mongodb).await;
-
+    println!("fix_batch_ref start");
+    fix_batch_ref(&mongodb).await;
+    println!("fix_batch_ref end");
     if args.master.unwrap_or_default() {
         if args.created_at.is_none() {
             println!("duplicate_fix start");
@@ -131,10 +134,20 @@ async fn main() {
         TdsNatureOfPayment::create(&surrealdb, &mongodb).await;
     }
     if args.opening.unwrap_or_default() {
+        let now = Instant::now();
         println!("AccountOpening download start");
         AccountOpening::set_account_opening(&surrealdb, &mongodb).await;
+        println!(
+            "AccountOpening download end duration {}",
+            now.elapsed().as_secs() / 60
+        );
+        let now = Instant::now();
         println!("InventoryOpening download start");
         InventoryOpening::set_inventory_opening(&surrealdb, &mongodb).await;
+        println!(
+            "InventoryOpening download end duration {}",
+            now.elapsed().as_secs() / 60
+        );
     }
     for collection in [
         "payments",
@@ -145,6 +158,7 @@ async fn main() {
         "credit_notes",
     ] {
         println!("{} download start", collection);
+        let now = Instant::now();
         VoucherApiInput::create(
             &surrealdb,
             &mongodb,
@@ -152,13 +166,18 @@ async fn main() {
             doc! {"date": {"$gte": &args.from_date, "$lte": &args.to_date }},
         )
         .await;
+        println!(
+            "{} download end duration {}",
+            collection,
+            now.elapsed().as_secs() / 60
+        );
     }
     println!("stock_transfers target download start");
     VoucherApiInput::create_stock_journal(
         &surrealdb,
         &mongodb,
         "stock_transfers",
-        doc! {"transferType": "TARGET"},
+        doc! {"transferType": "TARGET", "date": {"$gte": &args.from_date, "$lte": &args.to_date }},
     )
     .await;
     println!("debit_notes download start");
@@ -167,22 +186,6 @@ async fn main() {
         &mongodb,
         "debit_notes",
         doc! {"date": {"$gte": &args.from_date, "$lte": &args.to_date }},
-    )
-    .await;
-    println!("sales download start");
-    VoucherApiInput::create(
-        &surrealdb,
-        &mongodb,
-        "sales",
-        doc! {"date": {"$gte": &args.from_date, "$lte": &args.to_date }},
-    )
-    .await;
-    println!("stock_transfers download start");
-    VoucherApiInput::create_stock_journal(
-        &surrealdb,
-        &mongodb,
-        "stock_transfers",
-        doc! {"transferType": "SOURCE", "date": {"$gte": &args.from_date, "$lte": &args.to_date }},
     )
     .await;
     println!("stock_adjustments download start");
@@ -209,4 +212,25 @@ async fn main() {
         doc! {"date": {"$gte": &args.from_date, "$lte": &args.to_date }},
     )
     .await;
+    println!("stock_transfers download start");
+    VoucherApiInput::create_stock_journal(
+        &surrealdb,
+        &mongodb,
+        "stock_transfers",
+        doc! {"transferType": "SOURCE", "date": {"$gte": &args.from_date, "$lte": &args.to_date }},
+    )
+    .await;
+    println!("sales download start");
+    let now = Instant::now();
+    VoucherApiInput::create(
+        &surrealdb,
+        &mongodb,
+        "sales",
+        doc! {"date": {"$gte": &args.from_date, "$lte": &args.to_date }},
+    )
+    .await;
+    println!(
+        "sales download end duration {}",
+        now.elapsed().as_secs() / 60
+    );
 }

@@ -18,11 +18,11 @@ pub struct AccountOpening {
 impl AccountOpening {
     pub async fn set_account_opening(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
         let find_opts = FindOptions::builder()
-            .projection(doc! {"defaultName": 1})
+            .projection(doc! {"surrealId": 1})
             .build();
         let accounts = mongodb
             .collection::<Document>("accounts")
-            .find(doc! {"defaultName": {"$exists": true}}, find_opts)
+            .find(doc! {"surrealId": {"$exists": true}}, find_opts)
             .await
             .unwrap()
             .try_collect::<Vec<Document>>()
@@ -69,10 +69,7 @@ impl AccountOpening {
             if let Some(default_acc) = account_doc {
                 account = (
                     "account".to_string(),
-                    default_acc
-                        .get_string("defaultName")
-                        .unwrap()
-                        .to_lowercase(),
+                    default_acc.get_string("surrealId").unwrap(),
                 )
                     .into()
             }

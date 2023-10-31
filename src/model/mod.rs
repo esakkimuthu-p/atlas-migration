@@ -268,6 +268,63 @@ impl Doc for Document {
     }
 }
 
+pub async fn fix_batch_ref(db: &Database) {
+    for collection in ["inventory_openings", "purchases", "sales"] {
+        let vouchers = db
+            .collection::<Document>(collection)
+            .aggregate(
+                vec![
+                    doc! {
+                        "$project": {
+                            "branch": 1,
+                            "trns": {
+                                "$filter": {
+                                    "input": "$invTrns",
+                                    "as": "trn",
+                                    "cond": { "$eq": ["$$trn.batch", "$$trn.inventory"] }
+                                }
+                            },
+                        }
+                    },
+                    doc! {"$unwind": "$trns"},
+                    doc! {"$project": {
+                        "_id": 0,
+                        "voucherId": "$_id",
+                        "txnId": "$trns._id",
+                        "matchObj": {"inventory": "$trns.inventory", "branch": "$branch", "batchNo": null}
+                    }},
+                ],
+                None,
+            )
+            .await
+            .unwrap()
+            .try_collect::<Vec<Document>>()
+            .await
+            .unwrap();
+        let mut updates = Vec::new();
+        for voucher in vouchers {
+            let non_batch = db
+                .collection::<Document>("batches")
+                .find_one(voucher.get_document("matchObj").unwrap().to_owned(), None)
+                .await
+                .unwrap()
+                .unwrap();
+            updates.push(doc! {
+                "q": { "_id": voucher.get_object_id("voucherId").unwrap() },
+                "u": { "$set": { "invTrns.$[elm].batch": non_batch.get_object_id("_id").unwrap() } },
+                "arrayFilters": [{"elm._id":voucher.get_object_id("txnId").unwrap() }]
+            });
+        }
+        if !updates.is_empty() {
+            let command = doc! {
+                "update": collection,
+                "updates": &updates
+            };
+            db.run_command(command, None).await.unwrap();
+        }
+    }
+}
+
 pub async fn duplicate_fix(db: &Database) {
     for collection in [
         "racks",

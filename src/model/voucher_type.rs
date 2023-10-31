@@ -173,29 +173,6 @@ impl VoucherType {
                     };
                     doc! {"stock_adjustment":config}
                 }
-                "STOCK_TRANSFER" => {
-                    let config = doc! {
-                        "barcode_enabled" : config_doc.get_bool("barcodeEnabled").unwrap_or_default(),
-                        "print_after_save" : config_doc.get_bool("printAfterSave").unwrap_or_default(),
-                        "enable_silent_print_mode" : config_doc.get_bool("enableSilentPrintMode").unwrap_or_default(),
-                        "enable_exp" : config_doc.get_bool("enableExp").unwrap_or_default(),
-                    };
-                    doc! {"stock_transfer":config}
-                }
-                "MATERIAL_CONVERSION" => {
-                    let config = doc! {
-                        "barcode_enabled" : config_doc.get_bool("barcodeEnabled").unwrap_or_default(),
-                        "print_after_save" : config_doc.get_bool("printAfterSave").unwrap_or_default(),
-                        "enable_silent_print_mode" : config_doc.get_bool("enableSilentPrintMode").unwrap_or_default(),
-                        "enable_exp" : config_doc.get_bool("enableExp").unwrap_or_default(),
-                    };
-                    doc! {"material_conversion":config}
-                }
-                "MANUFACTURING_JOURNAL" => {
-                    doc! {"manufacturing_journal": {
-                        "barcode_enabled" : config_doc.get_bool("barcodeEnabled").unwrap_or_default(),
-                    }}
-                }
                 _ => doc! {},
             };
             let _created: Created = surrealdb

@@ -1,7 +1,9 @@
+use std::str::FromStr;
+
 use super::{
     doc, Created, Database, Doc, Document, Serialize, StreamExt, Surreal, SurrealClient, Thing,
 };
-use mongodb::options::FindOptions;
+use mongodb::{bson::oid::ObjectId, options::FindOptions};
 
 #[derive(Debug, Serialize)]
 pub struct Batch {
@@ -26,6 +28,14 @@ pub struct Batch {
 impl Batch {
     pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
         let find_opts = FindOptions::builder().sort(doc! {"_id": 1}).build();
+        mongodb
+            .collection::<Document>("batches")
+            .delete_one(
+                doc! {"_id": ObjectId::from_str("647c6146a93905cdc7396905").unwrap()},
+                None,
+            )
+            .await
+            .unwrap();
         let mut cur = mongodb
             .collection::<Document>("batches")
             .find(doc! {}, find_opts)

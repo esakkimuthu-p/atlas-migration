@@ -213,64 +213,67 @@ impl Inventory {
                 }
             }
             if let Some(branch_details) = d.get_array_document("branchDetails") {
+                let mut br_hashset = HashSet::new();
                 for br_detail in branch_details {
-                    let s_disc = br_detail
-                        ._get_document("sDisc")
-                        .and_then(|x| from_document::<AmountInfo>(x).ok());
-                    let cost_margin = br_detail
-                        ._get_document("costMargin")
-                        .and_then(|x| from_document::<AmountInfo>(x).ok());
-                    let mrp_margin = br_detail
-                        ._get_document("mrpMargin")
-                        .and_then(|x| from_document::<AmountInfo>(x).ok());
-                    let min_profit_margin = br_detail
-                        ._get_document("minProfitMargin")
-                        .and_then(|x| from_document::<AmountInfo>(x).ok());
-                    let rack = br_detail
-                        ._get_document("rack")
-                        .and_then(|x| x.get_oid_to_thing("id", "rack"));
-                    let mut s_customer_disc: Vec<CustomerDiscount> = Vec::new();
-                    if let Some(c_s_disc) = br_detail.get_array_document("sCustomerDisc") {
-                        for c_disc in c_s_disc {
-                            let disc = CustomerDiscount {
-                                id: c_disc.get_oid_to_thing("id", "customer_group").unwrap(),
-                                disc: from_document::<AmountInfo>(
-                                    c_disc._get_document("disc").unwrap(),
-                                )
-                                .unwrap(),
-                            };
-                            s_customer_disc.push(disc);
+                    if br_hashset.insert(br_detail.get_object_id("branch").unwrap()) {
+                        let s_disc = br_detail
+                            ._get_document("sDisc")
+                            .and_then(|x| from_document::<AmountInfo>(x).ok());
+                        let cost_margin = br_detail
+                            ._get_document("costMargin")
+                            .and_then(|x| from_document::<AmountInfo>(x).ok());
+                        let mrp_margin = br_detail
+                            ._get_document("mrpMargin")
+                            .and_then(|x| from_document::<AmountInfo>(x).ok());
+                        let min_profit_margin = br_detail
+                            ._get_document("minProfitMargin")
+                            .and_then(|x| from_document::<AmountInfo>(x).ok());
+                        let rack = br_detail
+                            ._get_document("rack")
+                            .and_then(|x| x.get_oid_to_thing("id", "rack"));
+                        let mut s_customer_disc: Vec<CustomerDiscount> = Vec::new();
+                        if let Some(c_s_disc) = br_detail.get_array_document("sCustomerDisc") {
+                            for c_disc in c_s_disc {
+                                let disc = CustomerDiscount {
+                                    id: c_disc.get_oid_to_thing("id", "customer_group").unwrap(),
+                                    disc: from_document::<AmountInfo>(
+                                        c_disc._get_document("disc").unwrap(),
+                                    )
+                                    .unwrap(),
+                                };
+                                s_customer_disc.push(disc);
+                            }
                         }
+                        let mut price_config = None;
+                        if !s_customer_disc.is_empty()
+                            || s_disc.is_some()
+                            || cost_margin.is_some()
+                            || min_profit_margin.is_some()
+                        {
+                            price_config = Some(PriceConfig {
+                                s_disc,
+                                cost_margin,
+                                mrp_margin,
+                                min_profit_margin,
+                                s_customer_disc: (!s_customer_disc.is_empty())
+                                    .then_some(s_customer_disc),
+                            });
+                        }
+                        let _created: Created = surrealdb
+                            .create("inv_branch_detail")
+                            .content(InventoryBranchDetail {
+                                branch: br_detail.get_oid_to_thing("branch", "branch").unwrap(),
+                                inventory: id.clone(),
+                                rack,
+                                price_config,
+                                vendor: d.get_oid_to_thing("vendorId", "contact"),
+                            })
+                            .await
+                            .unwrap()
+                            .first()
+                            .cloned()
+                            .unwrap();
                     }
-                    let mut price_config = None;
-                    if !s_customer_disc.is_empty()
-                        || s_disc.is_some()
-                        || cost_margin.is_some()
-                        || min_profit_margin.is_some()
-                    {
-                        price_config = Some(PriceConfig {
-                            s_disc,
-                            cost_margin,
-                            mrp_margin,
-                            min_profit_margin,
-                            s_customer_disc: (!s_customer_disc.is_empty())
-                                .then_some(s_customer_disc),
-                        });
-                    }
-                    let _created: Created = surrealdb
-                        .create("inv_branch_detail")
-                        .content(InventoryBranchDetail {
-                            branch: br_detail.get_oid_to_thing("branch", "branch").unwrap(),
-                            inventory: id.clone(),
-                            rack,
-                            price_config,
-                            vendor: d.get_oid_to_thing("vendorId", "contact"),
-                        })
-                        .await
-                        .unwrap()
-                        .first()
-                        .cloned()
-                        .unwrap();
                 }
             }
         }
