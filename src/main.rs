@@ -138,15 +138,15 @@ async fn main() {
         println!("AccountOpening download start");
         AccountOpening::set_account_opening(&surrealdb, &mongodb).await;
         println!(
-            "AccountOpening download end duration {}",
-            now.elapsed().as_secs() / 60
+            "AccountOpening download end duration {} sec",
+            now.elapsed().as_secs()
         );
         let now = Instant::now();
         println!("InventoryOpening download start");
         InventoryOpening::set_inventory_opening(&surrealdb, &mongodb).await;
         println!(
-            "InventoryOpening download end duration {}",
-            now.elapsed().as_secs() / 60
+            "InventoryOpening download end duration {} sec",
+            now.elapsed().as_secs()
         );
     }
     for collection in [
@@ -167,12 +167,13 @@ async fn main() {
         )
         .await;
         println!(
-            "{} download end duration {}",
+            "{} download end duration {} min",
             collection,
-            now.elapsed().as_secs() / 60
+            (now.elapsed().as_secs() / 60) as f64
         );
     }
     println!("stock_transfers target download start");
+    let now = Instant::now();
     VoucherApiInput::create_stock_journal(
         &surrealdb,
         &mongodb,
@@ -180,7 +181,12 @@ async fn main() {
         doc! {"transferType": "TARGET", "date": {"$gte": &args.from_date, "$lte": &args.to_date }},
     )
     .await;
+    println!(
+        "stock_transfers transferType TARGET download end duration {} min",
+        (now.elapsed().as_secs() / 60) as f64
+    );
     println!("debit_notes download start");
+    let now = Instant::now();
     VoucherApiInput::create(
         &surrealdb,
         &mongodb,
@@ -188,7 +194,12 @@ async fn main() {
         doc! {"date": {"$gte": &args.from_date, "$lte": &args.to_date }},
     )
     .await;
+    println!(
+        "debit_notes download end duration {} min",
+        (now.elapsed().as_secs() / 60) as f64
+    );
     println!("stock_adjustments download start");
+    let now = Instant::now();
     VoucherApiInput::create_stock_journal(
         &surrealdb,
         &mongodb,
@@ -196,7 +207,12 @@ async fn main() {
         doc! {"date": {"$gte": &args.from_date, "$lte": &args.to_date }},
     )
     .await;
+    println!(
+        "stock_adjustments download end duration {} min",
+        (now.elapsed().as_secs() / 60) as f64
+    );
     println!("manufacturing_journals download start");
+    let now = Instant::now();
     VoucherApiInput::create_stock_journal(
         &surrealdb,
         &mongodb,
@@ -204,7 +220,12 @@ async fn main() {
         doc! {"date": {"$gte": &args.from_date, "$lte": &args.to_date }},
     )
     .await;
+    println!(
+        "manufacturing_journals download end duration {} min",
+        (now.elapsed().as_secs() / 60) as f64
+    );
     println!("material_conversions download start");
+    let now = Instant::now();
     VoucherApiInput::create_stock_journal(
         &surrealdb,
         &mongodb,
@@ -212,7 +233,12 @@ async fn main() {
         doc! {"date": {"$gte": &args.from_date, "$lte": &args.to_date }},
     )
     .await;
+    println!(
+        "material_conversions transferType SOURCE download end duration {} min",
+        (now.elapsed().as_secs() / 60) as f64
+    );
     println!("stock_transfers download start");
+    let now = Instant::now();
     VoucherApiInput::create_stock_journal(
         &surrealdb,
         &mongodb,
@@ -220,6 +246,10 @@ async fn main() {
         doc! {"transferType": "SOURCE", "date": {"$gte": &args.from_date, "$lte": &args.to_date }},
     )
     .await;
+    println!(
+        "stock_transfers transferType SOURCE download end duration {} min",
+        (now.elapsed().as_secs() / 60) as f64
+    );
     println!("sales download start");
     let now = Instant::now();
     VoucherApiInput::create(
@@ -231,6 +261,6 @@ async fn main() {
     .await;
     println!(
         "sales download end duration {}",
-        now.elapsed().as_secs() / 60
+        (now.elapsed().as_secs() / 60) as f64
     );
 }
