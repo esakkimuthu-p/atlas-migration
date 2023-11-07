@@ -167,9 +167,9 @@ async fn main() {
         )
         .await;
         println!(
-            "{} download end duration {} min",
+            "{} download end duration {} sec",
             collection,
-            (now.elapsed().as_secs() / 60) as f64
+            now.elapsed().as_secs()
         );
     }
     println!("stock_transfers target download start");
@@ -182,8 +182,8 @@ async fn main() {
     )
     .await;
     println!(
-        "stock_transfers transferType TARGET download end duration {} min",
-        (now.elapsed().as_secs() / 60) as f64
+        "stock_transfers transferType TARGET download end duration {} sec",
+        now.elapsed().as_secs()
     );
     println!("debit_notes download start");
     let now = Instant::now();
@@ -195,8 +195,8 @@ async fn main() {
     )
     .await;
     println!(
-        "debit_notes download end duration {} min",
-        (now.elapsed().as_secs() / 60) as f64
+        "debit_notes download end duration {} sec",
+        now.elapsed().as_secs()
     );
     println!("stock_adjustments download start");
     let now = Instant::now();
@@ -208,8 +208,8 @@ async fn main() {
     )
     .await;
     println!(
-        "stock_adjustments download end duration {} min",
-        (now.elapsed().as_secs() / 60) as f64
+        "stock_adjustments download end duration {} sec",
+        now.elapsed().as_secs()
     );
     println!("manufacturing_journals download start");
     let now = Instant::now();
@@ -221,8 +221,8 @@ async fn main() {
     )
     .await;
     println!(
-        "manufacturing_journals download end duration {} min",
-        (now.elapsed().as_secs() / 60) as f64
+        "manufacturing_journals download end duration {} sec",
+        now.elapsed().as_secs()
     );
     println!("material_conversions download start");
     let now = Instant::now();
@@ -234,8 +234,8 @@ async fn main() {
     )
     .await;
     println!(
-        "material_conversions transferType SOURCE download end duration {} min",
-        (now.elapsed().as_secs() / 60) as f64
+        "material_conversions transferType SOURCE download end duration {} sec",
+        now.elapsed().as_secs()
     );
     println!("stock_transfers download start");
     let now = Instant::now();
@@ -247,8 +247,8 @@ async fn main() {
     )
     .await;
     println!(
-        "stock_transfers transferType SOURCE download end duration {} min",
-        (now.elapsed().as_secs() / 60) as f64
+        "stock_transfers transferType SOURCE download end duration {} sec",
+        now.elapsed().as_secs()
     );
     println!("sales download start");
     let now = Instant::now();
@@ -260,7 +260,7 @@ async fn main() {
     )
     .await;
     println!(
-        "sales download end duration {}",
-        (now.elapsed().as_secs() / 60) as f64
+        "sales download end duration {} sec",
+        now.elapsed().as_secs()
     );
 }
