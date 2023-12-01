@@ -13,6 +13,7 @@ use surrealdb::{
     sql::{Id, Thing},
     Surreal,
 };
+use tokio_postgres::Client as PostgresClient;
 
 mod account;
 mod batch;

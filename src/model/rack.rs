@@ -1,36 +1,24 @@
-use super::{
-    doc, Created, Database, Doc, Document, Serialize, StreamExt, Surreal, SurrealClient, Thing,
-};
-#[derive(Debug, Serialize)]
-pub struct Rack {
-    pub id: Thing,
-    pub name: String,
-    pub display_name: String,
-}
+use super::{Database, Doc, Document, PostgresClient, StreamExt};
+pub struct Rack;
 
 impl Rack {
-    pub async fn create(
-        surrealdb: &Surreal<SurrealClient>,
-        mongodb: &Database,
-        filter: Option<Document>,
-    ) {
+    pub async fn create(postgres: &PostgresClient, mongodb: &Database, filter: Option<Document>) {
         let mut cur = mongodb
             .collection::<Document>("racks")
             .find(filter.unwrap_or_default(), None)
             .await
             .unwrap();
         while let Some(Ok(d)) = cur.next().await {
-            let _created: Created = surrealdb
-                .create("rack")
-                .content(Self {
-                    id: d.get_oid_to_thing("_id", "rack").unwrap(),
-                    name: d.get_string("name").unwrap(),
-                    display_name: d.get_string("displayName").unwrap(),
-                })
+            postgres
+                .execute(
+                    "INSERT INTO rack (id,name,display_name) VALUES ($1, $2, $3)",
+                    &[
+                        &d.get_object_id("_id").unwrap().to_hex(),
+                        &d.get_string("name").unwrap(),
+                        &d.get_string("displayName").unwrap(),
+                    ],
+                )
                 .await
-                .unwrap()
-                .first()
-                .cloned()
                 .unwrap();
         }
         println!("rack download end");

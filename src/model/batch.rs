@@ -1,32 +1,12 @@
 use std::str::FromStr;
 
-use super::{
-    doc, Created, Database, Doc, Document, Serialize, StreamExt, Surreal, SurrealClient, Thing,
-};
+use super::{doc, Database, Doc, Document, PostgresClient, StreamExt};
 use mongodb::{bson::oid::ObjectId, options::FindOptions};
 
-#[derive(Debug, Serialize)]
-pub struct Batch {
-    pub id: Thing,
-    pub inventory: Thing,
-    pub branch: Thing,
-    pub barcode: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub batch_no: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub expiry: Option<String>,
-    pub last_inward: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub mrp: Option<f64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub s_rate: Option<f64>,
-    pub p_rate_tax_inc: bool,
-    pub s_rate_tax_inc: bool,
-    pub unit_conv: f64,
-}
+pub struct Batch;
 
 impl Batch {
-    pub async fn create(surrealdb: &Surreal<SurrealClient>, mongodb: &Database) {
+    pub async fn create(postgres: &PostgresClient, mongodb: &Database) {
         let find_opts = FindOptions::builder().sort(doc! {"_id": 1}).build();
         mongodb
             .collection::<Document>("batches")
@@ -42,26 +22,25 @@ impl Batch {
             .await
             .unwrap();
         while let Some(Ok(d)) = cur.next().await {
-            let _created: Created = surrealdb
-                .create("batch")
-                .content(Self {
-                    id: d.get_oid_to_thing("_id", "batch").unwrap(),
-                    barcode: d.get_object_id("barcode").unwrap().to_hex(),
-                    batch_no: d.get_string("batchNo"),
-                    last_inward: d.get_string("lastInward").unwrap(),
-                    inventory: d.get_oid_to_thing("inventory", "inventory").unwrap(),
-                    expiry: d.get_string("expiry"),
-                    branch: d.get_oid_to_thing("branch", "branch").unwrap(),
-                    unit_conv: d._get_f64("unitConv").unwrap(),
-                    mrp: d._get_f64("mrp"),
-                    s_rate: d._get_f64("sRate"),
-                    p_rate_tax_inc: d.get_bool("pRateTaxInc").unwrap_or_default(),
-                    s_rate_tax_inc: d.get_bool("sRateTaxInc").unwrap_or(true),
-                })
+            postgres
+                .execute(
+                    "INSERT INTO batch (id,barcode,batch_no,inventory,expiry,branch,unit_conv,mrp,s_rate,p_rate_tax_inc,s_rate_tax_inc) 
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+                    &[
+                        &d.get_object_id("_id").unwrap().to_hex(),
+                        &d.get_object_id("barcode").unwrap().to_hex(),
+                        &d.get_string("batchNo"),
+                        &d.get_object_id("inventory").unwrap().to_hex(),
+                        &d.get_string("expiry"),
+                        &d.get_object_id("branch").unwrap().to_hex(),
+                        &d._get_f64("unitConv").unwrap(),
+                        &d._get_f64("mrp"),
+                        &d._get_f64("sRate"),
+                        &d.get_bool("pRateTaxInc").unwrap_or_default(),
+                        &d.get_bool("sRateTaxInc").unwrap_or(true),
+                    ],
+                )
                 .await
-                .unwrap()
-                .first()
-                .cloned()
                 .unwrap();
         }
         println!("batch download end");

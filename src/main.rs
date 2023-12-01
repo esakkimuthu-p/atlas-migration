@@ -4,6 +4,7 @@ use mongodb::{
     Client as MongoClient,
 };
 use std::time::Instant;
+use tokio_postgres::NoTls;
 
 use surrealdb::{engine::remote::ws::Ws, opt::auth::Root, Surreal};
 
@@ -27,6 +28,9 @@ struct Args {
     /// surreal Organization HOST.
     #[clap(short, long)]
     surreal: String,
+
+    #[clap(short, long)]
+    postgres: Option<String>,
 
     /// from_date.
     #[clap(short, long)]
@@ -63,11 +67,26 @@ async fn main() {
     surrealdb.use_ns("test").await.unwrap();
     surrealdb.use_db("test").await.unwrap();
 
+    let (client, connection) =
+        tokio_postgres::connect("host=localhost user=postgres password=1", NoTls)
+            .await
+            .unwrap();
+
+    tokio::spawn(async move {
+        if let Err(e) = connection.await {
+            eprintln!("connection error: {}", e);
+        }
+    });
+
     let mongodb = MongoClient::with_uri_str(args.uri)
         .await
         .unwrap()
         .default_database()
         .unwrap();
+    Account::create(&client, &mongodb).await;
+    Branch::create(&client, &mongodb).await;
+    Rack::create(&client, &mongodb, None).await;
+    panic!("ERRR");
     println!("company name {:?}", mongodb.name());
     println!("default account fix start");
     Account::map(&mongodb).await;
@@ -83,15 +102,15 @@ async fn main() {
             .created_at
             .map(|dt| doc! {"createdAt": DateTime::parse_rfc3339_str(dt).unwrap()});
         println!("Rack download start");
-        Rack::create(&surrealdb, &mongodb, filter).await;
+        Rack::create(&client, &mongodb, filter).await;
         println!("PharmaSalt download start");
-        PharmaSalt::create(&surrealdb, &mongodb).await;
+        PharmaSalt::create(&client, &mongodb).await;
         println!("Unit download start");
         Unit::create(&surrealdb, &mongodb).await;
         println!("Doctor download start");
         Doctor::create(&surrealdb, &mongodb).await;
         println!("account download start");
-        Account::create(&surrealdb, &mongodb).await;
+        Account::create(&client, &mongodb).await;
         println!("Contact download start");
         Contact::create(&surrealdb, &mongodb).await;
         println!("VendorItemMapping download start");
@@ -123,11 +142,11 @@ async fn main() {
         println!("PrintTemplate download start");
         PrintTemplate::create(&surrealdb, &mongodb).await;
         println!("branch download start");
-        Branch::create(&surrealdb, &mongodb).await;
+        Branch::create(&client, &mongodb).await;
         println!("Inventory download start");
         Inventory::create(&surrealdb, &mongodb).await;
         println!("Batch download start");
-        Batch::create(&surrealdb, &mongodb).await;
+        Batch::create(&client, &mongodb).await;
         println!("VoucherNumbering download start");
         VoucherNumbering::create(&surrealdb, &mongodb).await;
         println!("TdsNatureOfPayment download start");
